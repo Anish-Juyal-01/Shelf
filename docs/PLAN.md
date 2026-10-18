@@ -217,3 +217,16 @@ shelf view shows games as spines whose thickness is their size on disk.
    changing (so half-extracted zips aren't judged early).
 4. **Steam hours: import** from `userdata\<id>\config\localconfig.vdf` as `imported_seconds`, shown as
    "incl. 120 h from Steam" so it's never confused with time Shelf measured.
+
+## Phase 2 notes (what changed from the plan)
+
+- **Scan cache and scan roots are JSON for now** (`%LOCALAPPDATA%\Shelf\scan-cache.json`,
+  `%APPDATA%\Shelf\settings.json`). The cache is disposable, so JSON is fine; the library, sessions and review
+  decisions move into SQLite in phase 3.
+- **Two more readers**: Riot (VALORANT, League) and HoYoPlay (Genshin, Star Rail, ZZZ) — both were on this PC.
+- **Launcher program folders are skipped by the scanner** (Steam's folder, Epic Launcher/Online Services, EA
+  Desktop…): their overlays and helpers looked like games.
+- **Folder timestamps are read from the folder itself** for cached game roots: the time in the parent's listing
+  comes from NTFS's directory index, which Windows updates lazily.
+- Playtime matching in phase 3 will use "process exe is inside the install folder" for store games, so launchers
+  don't need to tell us which exe is the game.
