@@ -230,3 +230,16 @@ shelf view shows games as spines whose thickness is their size on disk.
   comes from NTFS's directory index, which Windows updates lazily.
 - Playtime matching in phase 3 will use "process exe is inside the install folder" for store games, so launchers
   don't need to tell us which exe is the game.
+
+## Phase 3 notes
+
+- **Foreground check is polled, not hooked.** `GetForegroundWindow` is read with each 5 s process snapshot
+  instead of a `SetWinEventHook` thread: same answer, a few microseconds, and one less thread with a message loop.
+- **Power events**: `ShelfWatcher.Suspend()/Resume()` exist for the app to wire to `SystemEvents.PowerModeChanged`
+  (phase 4). Independently of events, a gap of 90 s+ between polls is treated as sleep, so `shelf-cli watch`
+  handles sleep correctly too.
+- **Store games are matched by folder**: any non-helper exe running inside an install folder counts as playing
+  that game; exact exe matches (manual/runtime adds) take priority.
+- **Background refresh** every 30 minutes (incremental) catches games installed through launchers while Shelf runs;
+  scan folders are watched live with `FileSystemWatcher` and a 60 s settle delay.
+- Measured on this PC: watcher CPU 0.05–0.07 % of the machine (idle and while a game runs), ~55 MB working set.

@@ -10,7 +10,7 @@ using Shelf.Core.Storage;
 
 namespace Shelf.Cli;
 
-internal static class Program
+internal static partial class Program
 {
     private const string Usage = """
         shelf-cli — test Shelf's game detection without the app
@@ -20,18 +20,26 @@ internal static class Program
               --full        ignore the cache and re-examine every folder
               --no-save     don't remember this folder for `list`
               --no-sizes    skip measuring folder sizes (faster)
-          shelf-cli list [options]              every game: launchers + remembered folders (incremental)
-              --sort name|size|played           default: name
-              --review      also show low-confidence detections
+          shelf-cli list [options]              refresh, save to the database and show every game with playtime
+              --sort name|size|played|time      default: name
+              --review      also show low-confidence detections waiting for review
               --leftovers   also show big archives and un-run installers
-              --why         show the signals behind each detection
+              --hidden      include games you hid
               --json        machine-readable output
+          shelf-cli watch [--stats] [--no-refresh]
+                                                track playtime live (Ctrl+C to stop); suggests unknown games
+                                                that run fullscreen or use the GPU for 60s; spots new downloads
+          shelf-cli sessions [--days N] [game]  play sessions (default: last 14 days)
+          shelf-cli review                      detections waiting for a decision
+          shelf-cli review accept <id> [title]  add one to the library (optionally with your title)
+          shelf-cli review reject <id>          "not a game" — never suggested again
+          shelf-cli add <exe> [title]           add a game by its exe
           shelf-cli roots [remove <folder>]     remembered scan folders
           shelf-cli suggest                     folders Shelf would suggest scanning
           shelf-cli clean <name>                run the name cleaner on a folder/exe name
 
         Shelf only reads: it never changes, moves or deletes anything in game folders.
-        Data: %APPDATA%\Shelf\settings.json, cache: %LOCALAPPDATA%\Shelf\scan-cache.json
+        Data: %APPDATA%\Shelf (settings.json, shelf.db), cache: %LOCALAPPDATA%\Shelf
         """;
 
     private static int Main(string[] args)
@@ -58,6 +66,10 @@ internal static class Program
                 "sources" => Sources(rest),
                 "scan" => Scan(rest, cts.Token),
                 "list" => List(rest, cts.Token),
+                "watch" => Watch(rest, cts.Token),
+                "sessions" => Sessions(rest),
+                "review" => Review(rest),
+                "add" => Add(rest),
                 "roots" => Roots(rest),
                 "suggest" => Suggest(),
                 "clean" => Clean(rest),
@@ -194,114 +206,6 @@ internal static class Program
             }
         }
         return result.Cancelled ? 130 : 0;
-    }
-
-    private static int List(List<string> args, CancellationToken ct)
-    {
-        var sort = Option(args, "--sort") ?? "name";
-        var showReview = Flag(args, "--review");
-        var showLeftovers = Flag(args, "--leftovers");
-        var why = Flag(args, "--why");
-        var json = Flag(args, "--json");
-
-        var sw = Stopwatch.StartNew();
-        var paths = ShelfPaths.Default();
-        var settings = ShelfSettings.Load(paths);
-        var cache = ScanCacheStore.Load(paths);
-        var sources = SourceReaders.ReadAll(SystemContext.Real(), ct);
-        var known = LibraryBuilder.KnownInstallPaths(sources, SystemContext.Real());
-        LibraryBuilder.Enrich(sources.SelectMany(s => s.Installs), cache, measureSizes: true, ct);
-
-        var scanner = new FolderScanner(new ScanOptions { SkipPaths = known }, cache);
-        var scans = new List<ScanResult>();
-        foreach (var root in settings.ScanRoots)
-        {
-            if (!Directory.Exists(root))
-            {
-                scans.Add(new ScanResult { Root = root, Error = $"Scan folder not reachable: {root}" });
-                continue;
-            }
-            scans.Add(scanner.Scan(root, ct: ct));
-        }
-        ScanCacheStore.Save(paths, cache);
-        var snap = LibraryBuilder.Build(sources, scans);
-
-        if (json)
-        {
-            Console.WriteLine(JsonSerializer.Serialize(new
-            {
-                games = snap.Games.Select(g => new
-                {
-                    g.Title,
-                    sources = g.Sources.Select(s => s.DisplayName()),
-                    g.SizeBytes,
-                    importedHours = Math.Round(g.ImportedPlaySeconds / 3600.0, 1),
-                    lastPlayed = g.ImportedLastPlayed,
-                    g.HasDuplicates,
-                    installs = g.Installs,
-                }),
-                review = showReview ? snap.Review : null,
-                leftovers = showLeftovers ? snap.Leftovers : null,
-                sources = snap.Sources.Select(s => new { source = s.Source.DisplayName(), state = s.State.ToString(), s.Message, count = s.Installs.Count }),
-                scans = snap.Scans.Select(s => new { s.Root, s.Error, s.DirsVisited, s.CacheHits, s.Unreadable, seconds = s.Elapsed.TotalSeconds }),
-            }, JsonStore.Options));
-            return 0;
-        }
-
-        IEnumerable<GameEntry> games = sort switch
-        {
-            "size" => snap.Games.OrderByDescending(g => g.SizeBytes),
-            "played" => snap.Games.OrderByDescending(g => g.ImportedLastPlayed ?? DateTimeOffset.MinValue),
-            _ => snap.Games,
-        };
-
-        Console.WriteLine($"{"Game",-42} {"Source",-16} {"Size",9} {"Hours",6}  {"Last played",-11}  Folder");
-        Console.WriteLine(new string('─', Math.Min(ConsoleWidth() - 1, 140)));
-        foreach (var g in games)
-        {
-            var src = string.Join("+", g.Sources.Select(s => s.DisplayName()));
-            var hours = g.ImportedPlaySeconds > 0 ? (g.ImportedPlaySeconds / 3600.0).ToString("0.0") : "";
-            var last = g.ImportedLastPlayed?.LocalDateTime.ToString("yyyy-MM-dd") ?? "";
-            var flags = (g.IsInstalled ? "" : " [missing]") + (g.HasDuplicates ? $" [{g.Installs.Count(i => i.IsInstalled)} copies]" : "");
-            Console.WriteLine($"{Trunc(g.Title + flags, 42),-42} {Trunc(src, 16),-16} {Bytes.Format(g.IsInstalled ? g.SizeBytes : null),9} {hours,6}  {last,-11}  {g.Primary.InstallPath}");
-            if (why)
-                foreach (var i in g.Installs)
-                    foreach (var s in i.Signals) Console.WriteLine($"{"",6}{i.Source.DisplayName()}: {s}");
-        }
-        var installedSize = snap.Games.Where(g => g.IsInstalled).Sum(g => g.SizeBytes);
-        Console.WriteLine($"\n{snap.Games.Count(g => g.IsInstalled)} games installed, {Bytes.Format(installedSize)} on disk" +
-            (snap.Games.Any(g => !g.IsInstalled) ? $" · {snap.Games.Count(g => !g.IsInstalled)} listed but missing" : "") +
-            $" · {snap.Review.Count} to review · {snap.Leftovers.Count} leftovers ({Bytes.Format(snap.Leftovers.Sum(l => l.SizeBytes))})" +
-            $" · {sw.Elapsed.TotalSeconds:0.0}s");
-
-        if (showReview && snap.Review.Count > 0)
-        {
-            Console.WriteLine("\nReview (not sure these are games):");
-            foreach (var r in snap.Review)
-            {
-                Console.WriteLine($"  ? {Trunc(r.Title, 40),-40} {r.Confidence,3}%  {Bytes.Format(r.SizeBytes),9}  {r.InstallPath}");
-                if (why) foreach (var s in r.Signals) Console.WriteLine($"{"",8}{s}");
-            }
-        }
-        if (showLeftovers && snap.Leftovers.Count > 0)
-        {
-            Console.WriteLine("\nLeftovers taking space (Shelf never deletes these — check and remove them yourself):");
-            foreach (var l in snap.Leftovers)
-                Console.WriteLine($"  ~ {Trunc(l.Title, 40),-40} {(l.Kind == LeftoverKind.Archive ? "archive  " : "installer"),-9} {Bytes.Format(l.SizeBytes),9}  {l.Path}");
-        }
-
-        var problems = snap.Sources.Where(s => s.State is SourceState.Partial or SourceState.Unreadable).ToList();
-        var scanProblems = snap.Scans.Where(s => s.Error is not null || s.Unreadable > 0).ToList();
-        if (problems.Count > 0 || scanProblems.Count > 0)
-        {
-            Console.WriteLine("\nHeads-up:");
-            PrintSources(problems, verbose: true);
-            foreach (var s in scanProblems)
-                Console.WriteLine($"  [scan] {s.Error ?? $"{s.Root}: {s.Unreadable} folders couldn't be read"}");
-        }
-        if (settings.ScanRoots.Count == 0)
-            Console.WriteLine("\nNo scan folders yet — loose games (zips, repacks) only show if Windows lists them. Try: shelf-cli suggest");
-        return 0;
     }
 
     private static int Roots(List<string> args)

@@ -239,6 +239,34 @@ public static partial class FolderClassifier
             if (!v.PlayExes.Contains(s, StringComparer.OrdinalIgnoreCase)) v.PlayExes.Add(s);
     }
 
+    /// <summary>
+    /// The game folder for an exe: its own folder, or a parent when the exe sits in a layout folder such as
+    /// <c>bind</c> or <c>Binaries\Win64</c>.
+    /// </summary>
+    public static string InstallRootFor(string exePath)
+    {
+        var dir = Path.GetDirectoryName(PathUtil.Normalize(exePath))!;
+        for (var i = 0; i < 3; i++)
+        {
+            var name = Path.GetFileName(dir);
+            var parent = Path.GetDirectoryName(dir);
+            if (parent is null || !LayoutFolderNames.Contains(name)) break;
+            // Unreal: <Root>\<Game>\Binaries\Win64 → <Root> when an Engine folder sits beside <Game>.
+            dir = parent;
+        }
+        var up = Path.GetDirectoryName(dir);
+        if (up is not null && Directory.Exists(Path.Combine(up, "Engine")) && Directory.Exists(Path.Combine(dir, "Binaries")))
+            dir = up;
+        return dir;
+    }
+
+    public static string TitleFor(string root, string? exe) => PickTitle(root, exe);
+
+    private static readonly HashSet<string> LayoutFolderNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "bin", "bin64", "bin32", "x64", "x86", "win64", "win32", "win_x64", "binaries", "retail", "release", "shipping",
+    };
+
     private static string PickTitle(string path, string? launchExe)
     {
         var folder = Path.GetFileName(path);
