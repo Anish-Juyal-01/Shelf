@@ -37,8 +37,9 @@ internal static partial class Program
           shelf-cli roots [remove <folder>]     remembered scan folders
           shelf-cli suggest                     folders Shelf would suggest scanning
           shelf-cli clean <name>                run the name cleaner on a folder/exe name
+          shelf-cli art [--key K] [--again]     look up missing covers/icons online (Steam; SteamGridDB with a key)
 
-        Shelf only reads: it never changes, moves or deletes anything in game folders.
+        Shelf only reads: it never changes, moves or deletes anything in game folders. Only `art` goes online.
         Data: %APPDATA%\Shelf (settings.json, shelf.db), cache: %LOCALAPPDATA%\Shelf
         """;
 
@@ -73,6 +74,7 @@ internal static partial class Program
                 "roots" => Roots(rest),
                 "suggest" => Suggest(),
                 "clean" => Clean(rest),
+                "art" => Art(rest, cts.Token),
                 _ => Fail($"Unknown command '{args[0]}'.\n\n{Usage}"),
             };
         }

@@ -1,8 +1,9 @@
 using System.Net;
 using System.Text.Json;
+using Shelf.Core.Art;
 using Shelf.Core.Naming;
 
-namespace Shelf.Core.Art;
+namespace Shelf.Core.Metadata;
 
 /// <summary>
 /// Looks up art Shelf couldn't find on disk. Two sources, both optional:

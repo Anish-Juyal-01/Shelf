@@ -1,8 +1,9 @@
+using Shelf.Core.Art;
 using Shelf.Core.Model;
 using Shelf.Core.Platform;
 using Shelf.Core.Storage;
 
-namespace Shelf.Core.Art;
+namespace Shelf.Core.Metadata;
 
 /// <summary>
 /// Fills the gaps in every installed game's art from the web (<see cref="WebArt"/>), never replacing what was found

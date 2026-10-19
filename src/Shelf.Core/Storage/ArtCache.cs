@@ -64,6 +64,13 @@ public sealed class ArtCache(ShelfPaths paths)
         catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { return null; }
     }
 
+    /// <summary>Forget a game's last web lookup, so it's tried again.</summary>
+    public void ForgetWeb(long gameId)
+    {
+        try { File.Delete(WebFile(gameId)); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+    }
+
     public void MarkWeb(long gameId, WebLookup mark)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(WebFile(gameId))!);

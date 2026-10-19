@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using Shelf.App.Bridge;
 using Shelf.Core.Art;
+using Shelf.Core.Metadata;
 using Shelf.App.Shell;
 using Shelf.Core.Launching;
 using Shelf.Core.Library;
