@@ -52,6 +52,9 @@
 .journey {
   --x-right: 86%;
   --x-left: 72%;
+  /* faint map-paper dots, so the path has ground to run over */
+  background-image: radial-gradient(color-mix(in oklab, var(--ink) 9%, transparent) 1px, transparent 1.2px);
+  background-size: 26px 26px;
 }
 @media (min-width: 1024px) {
   .journey {

@@ -4,6 +4,7 @@ import type { GameView } from "../bridge/protocol";
 import { Cover } from "../components/Cover";
 import { WheelHero } from "../components/Heroes";
 import { sourceName } from "../lib/format";
+import { VIGNETTES } from "./Vignettes";
 
 // The website is one journey. The newest game sits at the end of a bookcase; as you scroll it leaves the shelf and
 // travels down a dotted path, holding its place on screen while the page moves under it. The path passes a few
@@ -173,7 +174,7 @@ export function Journey({ games, faller, line, download }: { games: GameView[]; 
   }, [measure, frame, reduced]);
 
   return (
-    <div ref={box} className="journey relative">
+    <div ref={box} className="journey relative overflow-x-clip">
       {/* the dotted path, and the stretch already walked drawn solid over it */}
       {path && !reduced && (
         <svg aria-hidden className="pointer-events-none absolute top-0 left-0 overflow-visible" width={path.w} height={path.h}>
@@ -209,13 +210,14 @@ export function Journey({ games, faller, line, download }: { games: GameView[]; 
       {/* the stops */}
       {STOPS.map((s, i) => (
         <section key={s.title} className="relative mx-auto max-w-[1240px] px-4 sm:px-8 lg:px-10">
-          <div className="relative flex min-h-[78svh] items-center">
+          <div className="relative flex min-h-[86svh] items-center py-16">
             <div
-              className={`relative z-10 max-w-[30ch] max-lg:pr-[30%] ${s.side === "right" ? "lg:mr-auto lg:ml-[4%]" : "lg:mr-[6%] lg:ml-auto"}`}
+              className={`relative z-10 max-w-[400px] max-lg:pr-[24%] ${s.side === "right" ? "lg:mr-auto lg:ml-[4%]" : "lg:mr-[6%] lg:ml-auto"}`}
             >
               <div className="typed text-[12px] text-ink-3">{String(i + 1).padStart(2, "0")}</div>
               <h2 className="font-display mt-2 text-[clamp(34px,3.8vw,58px)] leading-[0.98] text-balance">{s.title}</h2>
               <p className="mt-4 text-[clamp(15.5px,1.2vw,17.5px)] leading-[1.6] text-ink-2">{s.body}</p>
+              <Vignette i={i} on={i < reached} />
             </div>
             <div
               ref={(el) => {
@@ -230,21 +232,24 @@ export function Journey({ games, faller, line, download }: { games: GameView[]; 
         </section>
       ))}
 
-      {/* the end of the path: the sky, with a slot held open */}
-      <section className="relative px-2 pt-[10svh] pb-[26svh] sm:px-5">
-        <h2 className="font-display mx-auto mb-8 max-w-[1240px] px-2 text-center text-[clamp(38px,4.6vw,72px)] leading-[0.95] sm:px-6">
-          {landed ? "On your shelf. Every one." : "Last stop."}
-        </h2>
-        <div className="relative mx-auto h-[min(560px,62svh)] max-w-[1600px] overflow-hidden rounded-[22px] ring-1 ring-black/5">
-          <WheelHero games={wheelGames} onOpen={() => {}} running={landed} gap={!landed} slotRef={slot} />
-        </div>
-        <div className="mt-10 flex justify-center">
-          <a
-            href={download}
-            className="inline-flex h-14 items-center gap-2.5 rounded-full bg-accent px-7 text-[17px] font-medium text-accent-ink shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_8px_24px_-10px_rgb(0_0_0/0.5)] transition-[filter] hover:brightness-110"
-          >
-            <Download className="size-5" strokeWidth={2.2} /> Download for Windows
-          </a>
+      {/* the end of the path: the sky with a slot held open, and the download, in one box */}
+      <section className="relative px-2 pt-[8svh] pb-[22svh] sm:px-5">
+        <div className="mx-auto max-w-[1320px] overflow-hidden rounded-[28px] bg-surface shadow-[0_2px_4px_rgb(0_0_0/0.04),0_40px_80px_-40px_rgb(0_0_0/0.45)] ring-1 ring-rule-strong">
+          <div className="relative h-[min(520px,58svh)] overflow-hidden">
+            <WheelHero games={wheelGames} onOpen={() => {}} running={landed} gap={!landed} slotRef={slot} />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-6 border-t border-rule px-6 py-7 sm:px-10 sm:py-8">
+            <div>
+              <h2 className="font-display text-[clamp(34px,3.6vw,56px)] leading-[0.95]">{landed ? "On your shelf. Every one." : "Last stop."}</h2>
+              <p className="typed mt-3 text-[12px] text-ink-3">Windows 10 &amp; 11 · works offline · never deletes anything</p>
+            </div>
+            <a
+              href={download}
+              className="inline-flex h-14 items-center gap-2.5 rounded-full bg-accent px-7 text-[17px] font-medium text-accent-ink shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_8px_24px_-10px_rgb(0_0_0/0.5)] transition-[filter] hover:brightness-110"
+            >
+              <Download className="size-5" strokeWidth={2.2} /> Download for Windows
+            </a>
+          </div>
         </div>
       </section>
 
@@ -259,6 +264,11 @@ export function Journey({ games, faller, line, download }: { games: GameView[]; 
       )}
     </div>
   );
+}
+
+function Vignette({ i, on }: { i: number; on: boolean }) {
+  const V = VIGNETTES[i];
+  return <V on={on} />;
 }
 
 /** Index of the first sample at or below height y (samples are monotonic in y). */

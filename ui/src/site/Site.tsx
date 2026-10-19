@@ -1,6 +1,6 @@
 import { Download } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { sampleState } from "../bridge/previewBridge";
+import { SITE_GAMES } from "./siteGames";
 import { Journey } from "./Journey";
 
 // The Shelf website: a line that writes itself next to a bookcase, then one journey down the page (see Journey.tsx)
@@ -10,13 +10,8 @@ import { Journey } from "./Journey";
 const DOWNLOAD_URL = "#download";
 const GITHUB_URL = "https://github.com/Anish-Juyal-01";
 
-const state = sampleState();
-
 export function Site() {
-  const games = useMemo(
-    () => state.games.filter((g) => g.installed).sort((a, b) => Date.parse(b.lastPlayed ?? b.firstSeen) - Date.parse(a.lastPlayed ?? a.firstSeen)),
-    [],
-  );
+  const games = useMemo(() => [...SITE_GAMES].sort((a, b) => Date.parse(b.lastPlayed ?? b.firstSeen) - Date.parse(a.lastPlayed ?? a.firstSeen)), []);
   // The one that falls: a loose-folder game, exactly the kind Shelf exists to catch.
   const faller = games.find((g) => g.title === "Hollow Knight") ?? games[0];
   return (
@@ -35,7 +30,7 @@ export function Site() {
       />
       <footer className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-3 px-4 py-6 text-[13px] text-ink-3 sm:px-8 lg:px-10">
         <span className="font-display text-[22px] text-ink">Shelf<span className="text-u-red">.</span></span>
-        <span className="typed text-[12px]">Windows 10 &amp; 11 · works offline · never deletes anything</span>
+        <span>Keeps track of every game you download.</span>
       </footer>
     </div>
   );
