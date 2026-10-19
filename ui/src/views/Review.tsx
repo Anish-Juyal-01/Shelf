@@ -3,7 +3,7 @@ import { Check, FolderOpen, X } from "lucide-react";
 import { useState } from "react";
 import { bridge } from "../bridge/bridge";
 import type { DetectionView } from "../bridge/protocol";
-import { Button, Empty, IconButton, PageHead, Stamp } from "../components/ui";
+import { Button, Empty, IconButton, PageHead, Tag } from "../components/ui";
 import { bytes, relative } from "../lib/format";
 import { useApp } from "../store/store";
 
@@ -22,7 +22,7 @@ export function Review() {
         sub={review.length ? `${review.length} possible game${review.length === 1 ? "" : "s"} Shelf wasn't sure about` : "Nothing waiting"}
       />
       {review.length === 0 ? (
-        <Empty title="The returns desk is clear.">
+        <Empty title="Nothing to look at.">
           When Shelf finds something that might be a game but isn't sure — or spots an unknown program running
           fullscreen — it waits here for you to decide.
         </Empty>
@@ -89,7 +89,7 @@ function Confidence({ value }: { value: number }) {
           <span key={i} className={clsx("h-3 w-1.5 rounded-[1px]", i < Math.round(value / 10) ? (value >= 50 ? "bg-accent" : "bg-warn") : "bg-rule")} />
         ))}
       </span>
-      {value < 40 && <Stamp size="xs" tone="red" tilt={0}>Doubtful</Stamp>}
+      {value < 40 && <Tag size="xs" tone="red" tilt={0}>Doubtful</Tag>}
     </span>
   );
 }

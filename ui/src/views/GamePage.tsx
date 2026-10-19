@@ -5,7 +5,7 @@ import { useState } from "react";
 import { bridge } from "../bridge/bridge";
 import type { GameDetail, InstallView, SessionView } from "../bridge/protocol";
 import { Cover } from "../components/Cover";
-import { Button, IconButton, MenuButton, SectionTitle, Stamp } from "../components/ui";
+import { Button, IconButton, MenuButton, SectionTitle, Tag } from "../components/ui";
 import { bytes, clock, duration, hours, relative, sourceName, stampDate } from "../lib/format";
 import { isOverdue } from "../lib/library";
 import { useApp } from "../store/store";
@@ -30,10 +30,10 @@ export function GamePage() {
 
       <div className="grid grid-cols-[minmax(200px,280px)_1fr] gap-10 max-[820px]:grid-cols-1">
         <div className="relative max-w-[280px]">
-          <Cover title={game.title} url={game.coverUrl} large className={clsx(!game.installed && "opacity-50 grayscale")} />
+          <Cover title={game.title} url={game.coverUrl} iconUrl={game.iconUrl} large className={clsx(!game.installed && "opacity-50 grayscale")} />
           {overdue && (
             <span className="absolute -right-3 bottom-8">
-              <Stamp tone="red" size="lg" tilt={-9} className="bg-[var(--surface)]/90">Overdue</Stamp>
+              <Tag tone="red" size="lg" className="bg-[var(--surface)]">Untouched 90+ days</Tag>
             </span>
           )}
         </div>
@@ -73,7 +73,7 @@ export function GamePage() {
             />
           </div>
 
-          <CatalogueCard detail={detail} />
+          <GlanceCard detail={detail} />
         </div>
       </div>
 
@@ -89,7 +89,7 @@ export function GamePage() {
   );
 }
 
-function CatalogueCard({ detail }: { detail: GameDetail | null }) {
+function GlanceCard({ detail }: { detail: GameDetail | null }) {
   const fallback = useApp((s) => s.state?.games.find((g) => g.id === s.gameId));
   const g = detail?.game ?? fallback!;
   const rows: [string, React.ReactNode][] = [
@@ -170,8 +170,8 @@ function Copies({ installs }: { installs: InstallView[] }) {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <Stamp size="xs" tilt={0}>{sourceName[i.source]}</Stamp>
-                  {i.state !== "installed" && <Stamp size="xs" tone="red" tilt={0}>{i.state === "missing" ? "folder missing" : "removed"}</Stamp>}
+                  <Tag size="xs" tilt={0}>{sourceName[i.source]}</Tag>
+                  {i.state !== "installed" && <Tag size="xs" tone="red" tilt={0}>{i.state === "missing" ? "folder missing" : "removed"}</Tag>}
                   <span className="typed text-[11.5px] text-ink-3">{bytes(i.sizeBytes)}</span>
                 </div>
                 <p className="typed mt-1.5 text-[12px] break-all text-ink-2">{i.path}</p>

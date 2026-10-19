@@ -4,7 +4,8 @@ import type { GameView, SessionView } from "../bridge/protocol";
 import { Empty, PageHead, SectionTitle } from "../components/ui";
 import { useNow } from "../components/useNow";
 import { clock, duration, hours } from "../lib/format";
-import { coverStyle, dailyTotals, topGames } from "../lib/library";
+import { gameColor } from "../lib/art";
+import { dailyTotals, topGames } from "../lib/library";
 import { useApp, useGameMap } from "../store/store";
 
 const DAY = 86_400_000;
@@ -79,7 +80,7 @@ export function Activity() {
                         <span className="typed shrink-0 text-[12px] text-ink-2">{duration(secs)}</span>
                       </div>
                       <div className="mt-1 h-1.5 rounded-full bg-sunken">
-                        <div className="h-full rounded-full" style={{ width: `${(secs / max) * 100}%`, background: g ? coverStyle(g.title).cloth.bg : "var(--ink-3)" }} />
+                        <div className="h-full rounded-full" style={{ width: `${(secs / max) * 100}%`, background: g ? gameColor(g.title) : "var(--ink-3)" }} />
                       </div>
                     </button>
                   </li>
@@ -156,7 +157,7 @@ function WeekTimeline({ sessions, games, gaps, now, onOpen }: {
                       onBlur={() => setHover(null)}
                       aria-label={`${s.title}, ${clock(s.start)}, ${duration(s.seconds)}`}
                       className="absolute top-[3px] bottom-[3px] min-w-[3px] cursor-pointer rounded-[2px] ring-ink/40 hover:ring-2"
-                      style={{ left: `${left}%`, width: `${width}%`, background: g ? coverStyle(g.title).cloth.bg : "var(--ink-3)" }}
+                      style={{ left: `${left}%`, width: `${width}%`, background: g ? gameColor(g.title) : "var(--ink-3)" }}
                     />
                   );
                 })}

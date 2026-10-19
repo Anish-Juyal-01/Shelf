@@ -42,8 +42,8 @@ export function IconButton({ label, children, className, ...rest }: ButtonHTMLAt
   );
 }
 
-/** Rubber-stamp label. Slight rotation unless `straight`. */
-export function Stamp({ children, tone = "ink", tilt = -2, className, size = "sm" }: {
+/** A small pill label. */
+export function Tag({ children, tone = "ink", tilt = 0, className, size = "sm" }: {
   children: ReactNode;
   tone?: "ink" | "red" | "violet" | "green";
   tilt?: number;
@@ -174,8 +174,7 @@ export function SectionTitle({ children, aside }: { children: ReactNode; aside?:
 export function Empty({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="slip mx-auto my-10 max-w-[460px] rounded-[4px] px-8 pt-3 pb-7 text-center">
-      <p className="caps h-[37px] pt-2 text-ink-3">Catalogue note</p>
-      <p className="font-display mt-4 text-[22px] leading-[28px] text-ink">{title}</p>
+            <p className="font-display mt-4 text-[22px] leading-[28px] text-ink">{title}</p>
       {children && <div className="mt-2 text-[13.5px] leading-relaxed text-ink-2">{children}</div>}
       {action && <div className="mt-5 flex justify-center gap-2">{action}</div>}
     </div>

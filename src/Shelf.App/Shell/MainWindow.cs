@@ -20,10 +20,13 @@ internal sealed class MainWindow : Window
 
     private readonly WebView2 _web;
     private readonly UiAssets _assets = new();
+    private readonly Func<string, string?> _art;
     private Task? _init;
 
-    public MainWindow()
+    /// <param name="art">Maps "&lt;gameId&gt;/cover.jpg" to a file in Shelf's art cache (or null).</param>
+    public MainWindow(Func<string, string?> art)
     {
+        _art = art;
         Title = "Shelf";
         Width = 1280;
         Height = 820;
@@ -197,7 +200,17 @@ internal sealed class MainWindow : Window
         core.AddWebResourceRequestedFilter(UiAssets.Origin + "/*", CoreWebView2WebResourceContext.All);
         core.WebResourceRequested += (_, e) =>
         {
-            var stream = _assets.Open(new Uri(e.Request.Uri), out var type);
+            var uri = new Uri(e.Request.Uri);
+            if (uri.AbsolutePath.StartsWith("/art/", StringComparison.OrdinalIgnoreCase))
+            {
+                var file = _art(Uri.UnescapeDataString(uri.AbsolutePath["/art/".Length..]));
+                e.Response = file is null
+                    ? env.CreateWebResourceResponse(null, 404, "Not Found", "")
+                    : env.CreateWebResourceResponse(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite), 200, "OK",
+                        $"Content-Type: {(file.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? "image/png" : "image/jpeg")}\r\nCache-Control: max-age=86400");
+                return;
+            }
+            var stream = _assets.Open(uri, out var type);
             e.Response = stream is null
                 ? env.CreateWebResourceResponse(null, 404, "Not Found", "")
                 : env.CreateWebResourceResponse(stream, 200, "OK", $"Content-Type: {type}\r\nCache-Control: no-cache");

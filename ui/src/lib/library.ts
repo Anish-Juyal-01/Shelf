@@ -68,23 +68,7 @@ export function sourceCounts(games: GameView[]): [SourceKind, number][] {
   return [...counts.entries()].sort((a, b) => b[1] - a[1]);
 }
 
-// ── Generated covers ─────────────────────────────────────────────────────────────────────────────────────────
-// Until real art is fetched (phase 5) every game gets a cloth-bound "book cover": a colour and a pattern picked
-// deterministically from its title, so the same game always looks the same.
-
-export const CLOTHS = [
-  { bg: "#6E2A2A", fg: "#F1E3C8" }, // oxblood
-  { bg: "#22385A", fg: "#E9DFC8" }, // navy
-  { bg: "#2F4A3A", fg: "#EFE6CF" }, // bottle green
-  { bg: "#B48A35", fg: "#2A1F12" }, // mustard
-  { bg: "#4A4E57", fg: "#EDE6D6" }, // slate
-  { bg: "#7A4B2A", fg: "#F3E6CC" }, // tan leather
-  { bg: "#4C3566", fg: "#EDE2F2" }, // plum
-  { bg: "#1F5B5B", fg: "#E4EFE9" }, // teal
-  { bg: "#A2473A", fg: "#FBEBDD" }, // brick
-  { bg: "#2B2B2B", fg: "#E7D8B5" }, // black buckram
-];
-
+/** Stable 32-bit FNV-1a hash, for picking per-title variations (poster scene, palette). */
 export function hash(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
@@ -92,11 +76,6 @@ export function hash(s: string): number {
     h = Math.imul(h, 16777619);
   }
   return h >>> 0;
-}
-
-export function coverStyle(title: string) {
-  const h = hash(normalize(title));
-  return { cloth: CLOTHS[h % CLOTHS.length], pattern: (h >>> 8) % 4, band: 22 + ((h >>> 12) % 30) };
 }
 
 // ── Activity ─────────────────────────────────────────────────────────────────────────────────────────────────

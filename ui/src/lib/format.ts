@@ -29,7 +29,7 @@ export function duration(seconds: number): string {
 
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
-/** Library date-stamp style: "12 OCT 2026" (year dropped when it's this year). */
+/** Short date: "12 OCT" ("12 OCT 2025" when not this year). */
 export function stampDate(iso: string | null, now = new Date()): string {
   if (!iso) return "NEVER";
   const d = new Date(iso);

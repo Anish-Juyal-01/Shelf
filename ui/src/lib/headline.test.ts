@@ -10,7 +10,7 @@ function game(p: Partial<GameView>): GameView {
   return {
     id: 1, title: "Game", sources: ["steam"], installed: true, hidden: false, sizeBytes: GB, copies: 1, playSeconds: 0, trackedSeconds: 0,
     importedSeconds: 0, lastPlayed: new Date(NOW - DAY).toISOString(), firstSeen: new Date(NOW - 30 * DAY).toISOString(), path: null,
-    canLaunch: true, genres: [], year: null, coverUrl: null, ...p,
+    canLaunch: true, genres: [], year: null, coverUrl: null, heroUrl: null, logoUrl: null, iconUrl: null, ...p,
   };
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GameView, SessionView } from "../bridge/protocol";
-import { coverStyle, dailyTotals, defaultFilter, filterGames, isOverdue, normalize, topGames, weekStart } from "./library";
+import { dailyTotals, defaultFilter, filterGames, isOverdue, normalize, topGames, weekStart } from "./library";
 import { bytes, duration, hours, stampDate } from "./format";
 
 const DAY = 86_400_000;
@@ -10,7 +10,7 @@ function game(p: Partial<GameView>): GameView {
   return {
     id: 1, title: "Game", sources: ["steam"], installed: true, hidden: false, sizeBytes: 10 * 1024 ** 3, copies: 1,
     playSeconds: 0, trackedSeconds: 0, importedSeconds: 0, lastPlayed: null, firstSeen: new Date(NOW - 10 * DAY).toISOString(),
-    path: null, canLaunch: true, genres: [], year: null, coverUrl: null, ...p,
+    path: null, canLaunch: true, genres: [], year: null, coverUrl: null, heroUrl: null, logoUrl: null, iconUrl: null, ...p,
   };
 }
 
@@ -89,8 +89,7 @@ describe("format", () => {
     expect(stampDate("2026-10-12T10:00:00", new Date(2026, 9, 19))).toBe("12 OCT");
     expect(stampDate("2025-01-02T10:00:00", new Date(2026, 9, 19))).toBe("02 JAN 2025");
   });
-  it("covers are stable per title", () => {
-    expect(coverStyle("Hades")).toEqual(coverStyle("hades!"));
+  it("normalises titles for search", () => {
     expect(normalize("Ori & the Blind")).toBe("ori the blind");
   });
 });

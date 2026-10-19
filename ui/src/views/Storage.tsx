@@ -1,11 +1,13 @@
 import clsx from "clsx";
 import { FolderOpen } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Cover } from "../components/Cover";
+import { squarify } from "../lib/treemap";
 import { bridge } from "../bridge/bridge";
 import type { DriveView, GameView } from "../bridge/protocol";
-import { Button, Empty, PageHead, SectionTitle, Stamp } from "../components/ui";
+import { Button, Empty, PageHead, SectionTitle, Tag } from "../components/ui";
 import { bytes, relative, sourceName } from "../lib/format";
-import { coverStyle, isOverdue, OVERDUE_DAYS } from "../lib/library";
+import { isOverdue, OVERDUE_DAYS } from "../lib/library";
 import { useApp } from "../store/store";
 
 export function Storage() {
@@ -33,12 +35,12 @@ export function Storage() {
         {state.drives.map((d) => <DriveMeter key={d.root} drive={d} />)}
       </div>
 
-      {installed.length > 0 && <TheShelf games={installed} onOpen={openGame} />}
+      {installed.length > 0 && <DiskMap games={installed} onOpen={openGame} />}
 
       <section className="mt-12">
-        <SectionTitle aside={overdue.length ? `${overdue.length} games · ${bytes(overdueBytes)}` : undefined}>Overdue — not played in {OVERDUE_DAYS}+ days</SectionTitle>
+        <SectionTitle aside={overdue.length ? `${overdue.length} games · ${bytes(overdueBytes)}` : undefined}>Untouched for {OVERDUE_DAYS}+ days</SectionTitle>
         {overdue.length === 0 ? (
-          <p className="text-[13px] text-ink-3">Nothing overdue. Everything installed has been played recently.</p>
+          <p className="text-[13px] text-ink-3">Everything installed has been played in the last three months.</p>
         ) : (
           <ul className="divide-y divide-rule">
             {overdue.map((g) => <GameRow key={g.id} game={g} onOpen={() => openGame(g.id)} />)}
@@ -69,7 +71,7 @@ export function Storage() {
           <ul className="divide-y divide-rule">
             {state.leftovers.map((l) => (
               <li key={l.path} className="flex items-center gap-4 py-3">
-                <Stamp size="xs" tone={l.kind === "installer" ? "violet" : "ink"} tilt={0} className="w-[78px] text-center">{l.kind === "installer" ? "Installer" : "Archive"}</Stamp>
+                <Tag size="xs" tone={l.kind === "installer" ? "violet" : "ink"} tilt={0} className="w-[78px] text-center">{l.kind === "installer" ? "Installer" : "Archive"}</Tag>
                 <div className="min-w-0 flex-1">
                   <p className="font-display truncate text-[20px] leading-tight text-ink">{l.title}</p>
                   <p className="typed truncate text-[11.5px] text-ink-3" title={l.path}>{l.path}</p>
@@ -113,48 +115,69 @@ function DriveMeter({ drive: d }: { drive: DriveView }) {
   );
 }
 
-/** Every installed game as a book spine; thickness is its size on disk. */
-function TheShelf({ games, onOpen }: { games: GameView[]; onOpen(id: number): void }) {
-  const max = games[0]?.sizeBytes ?? 1;
+/** Disk map: every installed game as a tile whose area is its share of the space games use. */
+function DiskMap({ games, onOpen }: { games: GameView[]; onOpen(id: number): void }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(1000);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setW(Math.round(e.contentRect.width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const H = 360;
+  const list = games.filter((g) => g.sizeBytes > 0);
+  const rects = squarify(list.map((g) => g.sizeBytes), w, H);
   return (
     <section className="mt-10">
-      <SectionTitle aside="thickness = size on disk · click a spine">The shelf</SectionTitle>
-      <div className="relative overflow-x-auto pb-1">
-        <div className="flex min-h-[180px] items-end gap-[3px] border-b-[6px] border-[color:var(--ink-2)] px-1">
-          {games.map((g, i) => {
-            const { cloth } = coverStyle(g.title);
-            const w = Math.max(9, Math.round(Math.sqrt(g.sizeBytes / max) * 64));
-            const h = 120 + ((g.id * 37) % 52);
-            const od = isOverdue(g);
-            return (
-              <button
-                key={g.id}
-                onClick={() => onOpen(g.id)}
-                title={`${g.title} — ${bytes(g.sizeBytes)}${od ? " · overdue" : ""}`}
-                aria-label={`${g.title}, ${bytes(g.sizeBytes)}`}
-                className="cloth group relative shrink-0 cursor-pointer rounded-t-[2px] transition-transform hover:-translate-y-2"
-                style={{ width: w, height: h, backgroundColor: cloth.bg, color: cloth.fg, transform: i % 11 === 7 ? "rotate(-2deg)" : undefined }}
-              >
-                <span className="absolute inset-x-0 top-2 h-px opacity-60" style={{ background: cloth.fg }} />
-                {w >= 18 && (
-                  <span className="font-display absolute inset-x-0 top-5 bottom-6 overflow-hidden text-[11px] leading-none whitespace-nowrap [writing-mode:vertical-rl]" style={{ fontVariationSettings: '"SOFT" 100' }}>
-                    {g.title}
-                  </span>
+      <SectionTitle aside="area = space on disk · click a game">What's using the space</SectionTitle>
+      <div ref={box} className="relative overflow-hidden rounded-[14px]" style={{ height: H }}>
+        {list.map((g, i) => {
+          const r = rects[i];
+          if (r.w < 2 || r.h < 2) return null;
+          const idle = isOverdue(g);
+          const big = r.w > 120 && r.h > 70;
+          return (
+            <button
+              key={g.id}
+              onClick={() => onOpen(g.id)}
+              title={`${g.title} — ${bytes(g.sizeBytes)}${idle ? " · not played in 90+ days" : ""}`}
+              aria-label={`${g.title}, ${bytes(g.sizeBytes)}`}
+              className="group absolute cursor-pointer overflow-hidden text-left"
+              style={{ left: r.x, top: r.y, width: r.w, height: r.h, padding: 2 }}
+            >
+              <div className="relative size-full overflow-hidden rounded-[10px]">
+                <div className="absolute inset-0 transition-transform duration-500 group-hover:scale-105">
+                  <TileArt game={g} />
+                </div>
+                <div className={clsx("absolute inset-0", idle ? "bg-black/55" : "bg-gradient-to-t from-black/70 via-black/10 to-transparent")} />
+                {big && (
+                  <div className="absolute right-3 bottom-2.5 left-3 text-white">
+                    <p className="font-display truncate text-[22px] leading-none">{g.title}</p>
+                    <p className="typed mt-1 text-[11px] opacity-85">{bytes(g.sizeBytes)}{idle && " · untouched 90+ days"}</p>
+                  </div>
                 )}
-                {od && <span className="absolute inset-x-0 bottom-2 mx-auto h-2.5 w-[70%] rounded-[1px] bg-stamp-red" />}
-              </button>
-            );
-          })}
-        </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
 }
 
+/** Wide art for a tile: Steam hero image, else the cover, else the generated poster. */
+function TileArt({ game: g }: { game: GameView }) {
+  const src = g.heroUrl ?? g.coverUrl;
+  if (src) return <img src={src} alt="" draggable={false} className="size-full object-cover" />;
+  return <Cover title={g.title} url={null} iconUrl={g.iconUrl} bare className="!aspect-auto size-full" />;
+}
+
 function GameRow({ game: g, onOpen, note }: { game: GameView; onOpen(): void; note?: string }) {
   return (
     <li className="flex items-center gap-4 py-3">
-      <span className="h-9 w-2 shrink-0 rounded-[1px]" style={{ background: coverStyle(g.title).cloth.bg }} />
+      <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} bare className="w-9 shrink-0 rounded-[5px] !shadow-none" />
       <button onClick={onOpen} className="min-w-0 flex-1 cursor-pointer text-left">
         <p className="font-display truncate text-[20px] leading-tight text-ink hover:text-accent">{g.title}</p>
         <p className="typed truncate text-[11.5px] text-ink-3">

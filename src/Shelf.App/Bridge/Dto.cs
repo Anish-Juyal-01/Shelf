@@ -19,7 +19,7 @@ internal static class Json
 internal sealed record GameDto(
     long Id, string Title, IReadOnlyList<SourceKind> Sources, bool Installed, bool Hidden, long SizeBytes, int Copies,
     long PlaySeconds, long TrackedSeconds, long ImportedSeconds, DateTime? LastPlayed, DateTime FirstSeen, string? Path,
-    bool CanLaunch, IReadOnlyList<string> Genres, int? Year, string? CoverUrl);
+    bool CanLaunch, IReadOnlyList<string> Genres, int? Year, string? CoverUrl, string? HeroUrl, string? LogoUrl, string? IconUrl);
 
 internal sealed record InstallDto(long Id, SourceKind Source, string Path, string? LaunchExe, string State, long? SizeBytes,
     int Confidence, IReadOnlyList<string> Signals, string? UninstallLabel);

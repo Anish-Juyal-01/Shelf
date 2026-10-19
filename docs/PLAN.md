@@ -278,3 +278,7 @@ a wheel of cards rising out of a painted sky, and a ring carousel the camera dro
   haven't been touched in three months. Or just keep playing VALORANT.").
 - The sidebar became an editorial top bar (`Shelf. / Library / Activity / Storage / Review / Settings`).
 - The five earlier directions remain in `ui/designs.html` (dev only, not shipped).
+- **No books**: covers are real art where the PC already has it (Steam's library cache, Xbox logos, each game's own
+  exe icon — copied into `%LOCALAPPDATA%\Shelf\art`, served from `https://shelf.local/art/…`), otherwise a generated
+  key-art poster (retro sun, ringed planet, light burst or synthwave grid in one of twelve palettes) with a bold
+  title. Storage's book spines became a disk-map treemap; library wording (overdue, catalogue, stamps) is gone.

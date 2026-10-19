@@ -60,6 +60,9 @@ const games: GameView[] = seeds.map(([title, sources, gb, played, hours, extra],
     genres: [],
     year: null,
     coverUrl: null,
+    heroUrl: null,
+    logoUrl: null,
+    iconUrl: null,
     ...extra,
   };
 });

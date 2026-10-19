@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using Shelf.App.Bridge;
+using Shelf.Core.Art;
 using Shelf.App.Shell;
 using Shelf.Core.Launching;
 using Shelf.Core.Library;
@@ -24,6 +25,7 @@ internal sealed class AppHost : IDisposable
     public SessionStore Sessions { get; }
     public ShelfWatcher Watcher { get; }
     public StartupManager Startup { get; } = new();
+    public ArtCache Art { get; }
 
     private readonly SystemContext _ctx = SystemContext.Real();
     private readonly LibraryRefresher _refresher;
@@ -48,6 +50,7 @@ internal sealed class AppHost : IDisposable
         Library = new LibraryStore(db);
         Sessions = new SessionStore(db);
         _settings = ShelfSettings.Load(Paths);
+        Art = new ArtCache(Paths);
         _refresher = new LibraryRefresher(_ctx, Paths, Library, SystemClock.Instance);
         Watcher = new ShelfWatcher(Library, Sessions, _refresher, new Win32ProcessSource(), new Win32ForegroundProbe(), _gpu, SystemClock.Instance)
         {
@@ -85,6 +88,8 @@ internal sealed class AppHost : IDisposable
         var r = _refresher.RefreshAll(onEvent: OnScanEvent, ct: ct);
         _leftovers = r.Snapshot.Leftovers;
         Watcher.RefreshIndex();
+        Changed?.Invoke();
+        SyncArt(ct);
         AnnounceNew(r.Sync, toast: !firstRun);
         if (firstRun && !_settings.OnboardingDone)
         {
@@ -259,12 +264,54 @@ internal sealed class AppHost : IDisposable
             Sessions.Sessions(gameId: id, limit: 5000).Select(ToDto).ToList());
     }
 
-    private static GameDto ToDto(GameRow g, IEnumerable<InstallRow> installs)
+    /// <summary>
+    /// Copies art that's already on this PC into Shelf's art cache: Steam's library images, Xbox logos, and each
+    /// loose game's own exe icon. No network. Runs after every refresh; cheap when nothing changed.
+    /// </summary>
+    private void SyncArt(CancellationToken ct)
+    {
+        var locator = new ArtLocator(_ctx);
+        var changed = false;
+        foreach (var g in Library.Games(includeHidden: true).Where(g => g.Installed))
+        {
+            if (ct.IsCancellationRequested) return;
+            var found = new Dictionary<ArtKind, string>();
+            var installs = Library.InstallsFor(g.Id).Where(i => i.State == "installed").ToList();
+            foreach (var i in installs)
+                foreach (var (k, v) in locator.Find(i)) found.TryAdd(k, v);
+            changed |= Art.Store(g.Id, found);
+            if (!found.ContainsKey(ArtKind.Cover) && !found.ContainsKey(ArtKind.Icon) && !Art.Has(g.Id, ArtKind.Icon))
+            {
+                // The game's own exe: the launch exe when it lives in the game folder, otherwise the best exe the
+                // classifier finds there (VALORANT launches through the Riot Client, whose icon isn't the game's).
+                var exe = installs
+                    .Select(i => i.LaunchExe is not null && PathUtil.IsSameOrInside(i.LaunchExe, i.InstallPath) ? i.LaunchExe : FolderClassifier.Evaluate(i.InstallPath).LaunchExe)
+                    .FirstOrDefault(e => e is not null && e.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && File.Exists(e));
+                if (exe is not null && IconExtractor.Png(exe) is { } png)
+                {
+                    Art.Write(g.Id, ArtKind.Icon, ".png", png);
+                    changed = true;
+                }
+            }
+        }
+        if (changed) Changed?.Invoke();
+    }
+
+    private string? ArtUrl(long gameId, ArtKind kind)
+    {
+        var file = Art.Get(gameId, kind);
+        if (file is null) return null;
+        var v = File.GetLastWriteTimeUtc(file).Ticks;
+        return $"https://shelf.local/art/{gameId}/{Path.GetFileName(file)}?v={v}";
+    }
+
+    private GameDto ToDto(GameRow g, IEnumerable<InstallRow> installs)
     {
         var list = installs.ToList();
         var canLaunch = list.Any(i => i.State == "installed" && (i.LaunchUri is not null || (i.LaunchExe is not null && File.Exists(i.LaunchExe))));
         return new GameDto(g.Id, g.Title, list.Select(i => i.Source).Distinct().ToList(), g.Installed, g.Hidden, g.SizeBytes, g.InstalledCopies,
-            g.PlaySeconds, g.TotalSeconds, g.ImportedSeconds, g.LastPlayedAny, g.FirstSeen, g.PrimaryPath, canLaunch, [], null, null);
+            g.PlaySeconds, g.TotalSeconds, g.ImportedSeconds, g.LastPlayedAny, g.FirstSeen, g.PrimaryPath, canLaunch, [], null,
+            ArtUrl(g.Id, ArtKind.Cover), ArtUrl(g.Id, ArtKind.Hero), ArtUrl(g.Id, ArtKind.Logo), ArtUrl(g.Id, ArtKind.Icon));
     }
 
     private static SessionDto ToDto(SessionRow s) =>

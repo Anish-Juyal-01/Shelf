@@ -31,6 +31,12 @@ export interface GameView {
   genres: string[];
   year: number | null;
   coverUrl: string | null;
+  /** Wide background art. */
+  heroUrl: string | null;
+  /** Transparent title logo. */
+  logoUrl: string | null;
+  /** The game's own icon (exe icon or Xbox logo). */
+  iconUrl: string | null;
 }
 
 export interface InstallView {
