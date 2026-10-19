@@ -1,11 +1,22 @@
 import clsx from "clsx";
-import { PALETTES, type PaletteId, type Tokens } from "../lib/palettes";
+import { PALETTES, type Palette, type PaletteId, type Tokens } from "../lib/palettes";
 
-/** Six colour themes as little skies: each swatch shows its own sky, clouds, accents and button in the current mode. */
+/** Colour and black themes as little skies: each swatch shows its own sky, clouds, accents and button in the current mode. */
 export function ThemePicker({ value, dark, onChange }: { value: PaletteId; dark: boolean; onChange(id: PaletteId): void }) {
   return (
-    <div role="radiogroup" aria-label="Colour theme" className="grid grid-cols-3 gap-3 max-[760px]:grid-cols-2">
-      {PALETTES.map((p) => {
+    <div role="radiogroup" aria-label="Colour theme" className="space-y-5">
+      <Group label="Colour" palettes={PALETTES.filter((p) => !p.black)} value={value} dark={dark} onChange={onChange} />
+      <Group label="Black" palettes={PALETTES.filter((p) => p.black)} value={value} dark={dark} onChange={onChange} />
+    </div>
+  );
+}
+
+function Group({ label, palettes, value, dark, onChange }: { label: string; palettes: Palette[]; value: PaletteId; dark: boolean; onChange(id: PaletteId): void }) {
+  return (
+    <div>
+      <p className="mb-2 text-[11.5px] font-semibold tracking-[0.12em] text-ink-3 uppercase">{label}</p>
+      <div className="grid grid-cols-3 gap-3 max-[760px]:grid-cols-2">
+      {palettes.map((p) => {
         const t = dark ? p.dark : p.light;
         const on = p.id === value;
         return (
@@ -35,6 +46,7 @@ export function ThemePicker({ value, dark, onChange }: { value: PaletteId; dark:
           </button>
         );
       })}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,9 @@
 // Colour themes. Each has a day and a night version; the CSS custom properties for all of them are generated from
 // this file (installPalettes), and the Settings swatches read the same objects, so they can never disagree.
 
-export type PaletteId = "sunset" | "aurora" | "neon" | "dune" | "deepsea" | "sakura";
+export type PaletteId =
+  | "sunset" | "aurora" | "neon" | "dune" | "deepsea" | "sakura"
+  | "onyx" | "ember" | "volt" | "cobalt" | "crimson" | "gold";
 
 export interface Tokens {
   bg: string;
@@ -39,7 +41,34 @@ export interface Palette {
   blurb: string;
   light: Tokens;
   dark: Tokens;
+  /** Black themes: "day" is graphite, "night" is true black. Both render with a dark colour scheme. */
+  black?: true;
 }
+
+/** Mix two hex colours (0 = a, 1 = b). */
+function mix(a: string, b: string, k: number): string {
+  const p = (h: string, i: number) => parseInt(h.slice(i, i + 2), 16);
+  return `#${[1, 3, 5].map((i) => Math.round(p(a, i) + (p(b, i) - p(a, i)) * k).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** A black theme from its accent: graphite by day, pure black by night, with the sky tinted by the accent's glow. */
+function black(id: PaletteId, name: string, blurb: string, a: { accent: string; ink: string; u: [string, string, string]; glow: string }): Palette {
+  const base = (bg: string, surface: string, s2: string, sunken: string, ink: string[], rule: string[], sky: string[], cloud: string[]): Tokens => ({
+    bg, surface, "surface-2": s2, sunken,
+    ink: ink[0], "ink-2": ink[1], "ink-3": ink[2], "ink-4": ink[3], rule: rule[0], "rule-strong": rule[1],
+    "u-blue": a.u[0], "u-red": a.u[1], "u-yellow": a.u[2], "u-ink": ink[0],
+    accent: a.accent, "accent-ink": a.ink, "accent-soft": mix(a.accent, bg, 0.86), ok: "#4ade80", warn: "#fbbf24",
+    "sky-top": sky[0], "sky-mid": sky[1], "sky-low": mix(sky[1], a.glow, sky === DAY_SKY ? 0.32 : 0.22), "sky-glow": mix(a.glow, sky[1], 0.15),
+    cloud: mix(cloud[0], a.glow, 0.08), "cloud-shade": cloud[1],
+  });
+  return {
+    id, name, blurb, black: true,
+    light: base("#121212", "#1b1b1b", "#222222", "#0b0b0b", ["#f4f4f4", "#cfcfcf", "#939393", "#5e5e5e"], ["#262626", "#393939"], DAY_SKY, ["#2c2c31", "#0c0c0d"]),
+    dark: base("#000000", "#0d0d0d", "#151515", "#060606", ["#f2f2f2", "#c4c4c4", "#8a8a8a", "#555555"], ["#1c1c1c", "#2e2e2e"], NIGHT_SKY, ["#1e1e22", "#050506"]),
+  };
+}
+const DAY_SKY = ["#0a0a0a", "#171717"];
+const NIGHT_SKY = ["#000000", "#060606"];
 
 export const PALETTES: Palette[] = [
   {
@@ -158,6 +187,16 @@ export const PALETTES: Palette[] = [
   },
 ];
 
+export const BLACK_PALETTES: Palette[] = [
+  black("onyx", "Onyx", "Pure black and white, nothing else", { accent: "#f2f2f2", ink: "#000000", u: ["#8e8e93", "#d4d4d4", "#ffffff"], glow: "#4a4a4a" }),
+  black("ember", "Ember", "Black with a burning orange", { accent: "#ff5a1f", ink: "#140600", u: ["#ff9a3c", "#ff3b1f", "#ffc857"], glow: "#ff5a1f" }),
+  black("volt", "Volt", "Black with acid lime", { accent: "#d7ff3a", ink: "#0b0f00", u: ["#7cff6b", "#d7ff3a", "#f5ff9e"], glow: "#a6d01f" }),
+  black("cobalt", "Cobalt", "Black with electric blue", { accent: "#5b8cff", ink: "#00081f", u: ["#5b8cff", "#9d7bff", "#7fe0ff"], glow: "#3d6bff" }),
+  black("crimson", "Crimson", "Black and blood red", { accent: "#ff3347", ink: "#1a0003", u: ["#ff7a85", "#ff3347", "#ffb3ba"], glow: "#c3142a" }),
+  black("gold", "Gold", "Black and brushed gold", { accent: "#e8c26a", ink: "#120d00", u: ["#c9a24a", "#d98b4a", "#f3dc9c"], glow: "#b8913d" }),
+];
+PALETTES.push(...BLACK_PALETTES);
+
 export const paletteById = (id: string | undefined): Palette => PALETTES.find((p) => p.id === id) ?? PALETTES[0];
 
 const block = (selector: string, t: Tokens, scheme: "light" | "dark") =>
@@ -166,7 +205,7 @@ const block = (selector: string, t: Tokens, scheme: "light" | "dark") =>
 /** CSS for every palette: `:root[data-palette=x]` for day, plus `[data-theme=dark]` for night. */
 export function paletteCss(): string {
   return PALETTES.map((p) =>
-    block(`:root[data-palette="${p.id}"]`, p.light, "light") + block(`:root[data-palette="${p.id}"][data-theme="dark"]`, p.dark, "dark"),
+    block(`:root[data-palette="${p.id}"]`, p.light, p.black ? "dark" : "light") + block(`:root[data-palette="${p.id}"][data-theme="dark"]`, p.dark, "dark"),
   ).join("\n");
 }
 

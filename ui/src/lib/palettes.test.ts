@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PALETTES, paletteById, paletteCss, type Tokens } from "./palettes";
+import { BLACK_PALETTES, PALETTES, paletteById, paletteCss, type Tokens } from "./palettes";
 
 const KEYS = Object.keys(PALETTES[0].light) as (keyof Tokens)[];
 
@@ -14,9 +14,20 @@ function contrast(a: string, b: string) {
 }
 
 describe("palettes", () => {
-  it("there are six, with unique ids", () => {
-    expect(PALETTES).toHaveLength(6);
-    expect(new Set(PALETTES.map((p) => p.id)).size).toBe(6);
+  it("there are six colour and six black, with unique ids", () => {
+    expect(PALETTES).toHaveLength(12);
+    expect(BLACK_PALETTES).toHaveLength(6);
+    expect(new Set(PALETTES.map((p) => p.id)).size).toBe(12);
+  });
+
+  it("black themes are black at night and dark-scheme by day too", () => {
+    const css = paletteCss();
+    for (const p of BLACK_PALETTES) {
+      expect(p.dark.bg).toBe("#000000");
+      expect(css).toContain(`:root[data-palette="${p.id}"]{--bg:${p.light.bg};`);
+      const day = css.slice(css.indexOf(`:root[data-palette="${p.id}"]{`));
+      expect(day.slice(0, day.indexOf("}"))).toContain("color-scheme:dark;");
+    }
   });
 
   it("every palette defines every token in both modes", () => {

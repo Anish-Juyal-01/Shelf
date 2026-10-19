@@ -421,7 +421,7 @@ internal sealed class AppHost : IDisposable
         Changed?.Invoke();
     }
 
-    private static readonly HashSet<string> Palettes = ["sunset", "aurora", "neon", "dune", "deepsea", "sakura"];
+    private static readonly HashSet<string> Palettes = ["sunset", "aurora", "neon", "dune", "deepsea", "sakura", "onyx", "ember", "volt", "cobalt", "crimson", "gold"];
 
     public void UpdateSettings(string? theme, string? palette, string? heroStyle, bool? runtimeDetection, bool? watchFolders, bool? startWithWindows, bool? closeToTray)
     {

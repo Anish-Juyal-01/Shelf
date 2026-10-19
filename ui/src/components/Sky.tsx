@@ -95,8 +95,15 @@ function mix(a: string, b: string, k: number): string {
   return `#${c.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 }
 
+/** Rough relative luminance (0 = black, 1 = white). */
+function luma(h: string): number {
+  const p = (i: number) => parseInt(h.slice(i, i + 2), 16) / 255;
+  return 0.2126 * p(1) + 0.7152 * p(3) + 0.0722 * p(5);
+}
+
 function Defs({ t }: { t: Tokens }) {
-  const light = mix(t.cloud, "#ffffff", 0.55);
+  // Dark clouds (the black themes) only get a faint moonlit top; lifting them toward white makes grey balls.
+  const light = mix(t.cloud, "#ffffff", luma(t.cloud) < 0.2 ? 0.12 : 0.55);
   const mid = t.cloud;
   const shade = t["cloud-shade"];
   const deep = mix(shade, t["sky-top"], 0.25);
