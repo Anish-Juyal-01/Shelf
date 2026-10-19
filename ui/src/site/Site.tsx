@@ -1,7 +1,6 @@
 import { Download, Moon, Sun } from "lucide-react";
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { sampleState } from "../bridge/previewBridge";
-import { WheelHero } from "../components/Heroes";
 import { SkyBackdrop, SkyFront } from "../components/Sky";
 import { ThemePicker } from "../components/ThemePicker";
 import { palette } from "../lib/art";
@@ -10,6 +9,7 @@ import { headline } from "../lib/headline";
 import { dailyTotals, isOverdue } from "../lib/library";
 import { paletteById, type PaletteId } from "../lib/palettes";
 import { applyTheme } from "../lib/theme";
+import { ShelfHero } from "./ShelfHero";
 import { squarify } from "../lib/treemap";
 
 // The Shelf website. Same world as the app: a paper page, tall serif type, three hand-drawn underline colours, and
@@ -124,30 +124,28 @@ function Hero() {
     () => state.games.filter((g) => g.installed).sort((a, b) => Date.parse(b.lastPlayed ?? b.firstSeen) - Date.parse(a.lastPlayed ?? a.firstSeen)),
     [],
   );
+  // The one that falls: a loose-folder game, i.e. exactly the kind Shelf exists to catch.
+  const faller = games.find((g) => g.title === "Hollow Knight") ?? games[0];
   return (
-    <section>
-      <Wrap className="pt-14 pb-10 sm:pt-20">
-        <h1 className="font-display rise text-[clamp(50px,8.4vw,124px)] leading-[0.88] tracking-[-0.02em]">
+    <ShelfHero
+      games={games}
+      faller={faller}
+      title={
+        <h1 className="font-display rise text-[clamp(44px,6.2vw,92px)] leading-[0.9] tracking-[-0.02em]">
           <span className="block text-balance">Every game on your PC.</span>
           <em className="mark block text-balance text-ink-2" style={u("red")}>Even the ones you forgot.</em>
         </h1>
-        <div className="rise mt-10 grid items-end gap-8 md:grid-cols-[1fr_auto]" style={{ animationDelay: "120ms" }}>
-          <p className="max-w-[54ch] text-[clamp(17px,1.5vw,20px)] leading-[1.5] text-ink-2">
-            Shelf finds what Steam, Epic, Xbox and nine other launchers installed — and the game you unzipped into Downloads
-            last spring. Then it tells you, in one sentence, what's taking up your drive.
-          </p>
-          <div className="flex flex-col items-start gap-3 md:items-end">
-            <DownloadButton big />
-            <p className="typed text-[12px] text-ink-3">Windows 10 &amp; 11 · works offline · never deletes anything</p>
-          </div>
-        </div>
-      </Wrap>
-      <div className="rise px-2 sm:px-5" style={{ animationDelay: "240ms" }}>
-        <div className="relative mx-auto h-[clamp(320px,52vh,560px)] max-w-[1600px] overflow-hidden rounded-[22px] ring-1 ring-black/5">
-          <WheelHero games={games} onOpen={() => {}} />
-        </div>
+      }
+    >
+      <p className="rise max-w-[46ch] text-[clamp(15.5px,1.25vw,17.5px)] leading-[1.5] text-ink-2 max-sm:hidden" style={{ animationDelay: "120ms" }}>
+        Shelf finds what Steam, Epic, Xbox and nine other launchers installed — and the game you unzipped into Downloads
+        last spring. Then it tells you what's taking up your drive.
+      </p>
+      <div className="rise mt-5 flex flex-wrap items-center gap-x-5 gap-y-2" style={{ animationDelay: "200ms" }}>
+        <DownloadButton big />
+        <p className="typed text-[12px] text-ink-3 max-sm:hidden">Windows 10 &amp; 11 · works offline · never deletes anything</p>
       </div>
-    </section>
+    </ShelfHero>
   );
 }
 

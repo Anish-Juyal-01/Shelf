@@ -1,5 +1,5 @@
 import { sourceName } from "../lib/format";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Ref } from "react";
 import type { GameView } from "../bridge/protocol";
 import { Cover } from "./Cover";
 import { SkyBackdrop, SkyFront } from "./Sky";
@@ -16,7 +16,16 @@ function fill(games: GameView[], min: number): GameView[] {
  * Hero 1 · The wheel. Covers ride a slowly turning wheel whose centre is below the frame, so only its upper arc
  * rises out of the clouds — like a Ferris wheel at sunset. Tilted back a little in 3D; pauses when hovered.
  */
-export function WheelHero({ games, onOpen }: { games: GameView[]; onOpen(id: number): void }) {
+export function WheelHero({ games, onOpen, running = true, gap = false, slotRef }: {
+  games: GameView[];
+  onOpen(id: number): void;
+  /** False holds the wheel still (the website keeps it still until a card lands in it). */
+  running?: boolean;
+  /** Leave the top slot (the first game) empty. */
+  gap?: boolean;
+  /** The top slot's card, for lining something up with it. */
+  slotRef?: Ref<HTMLDivElement>;
+}) {
   const R = 900;
   // Enough cards to go all the way round without gaps (repeats a small library).
   const cards = fill(games.slice(0, 44), Math.round((2 * Math.PI * R) / 132));
@@ -39,6 +48,7 @@ export function WheelHero({ games, onOpen }: { games: GameView[]; onOpen(id: num
           top: R + cardW * 0.75 + 40,
           transformStyle: "preserve-3d",
           animation: "shelf-wheel 240s linear infinite",
+          animationPlayState: running ? undefined : "paused",
         }}
       >
         {cards.map((g, i) => (
@@ -54,9 +64,10 @@ export function WheelHero({ games, onOpen }: { games: GameView[]; onOpen(id: num
               top: -cardW * 0.75,
               transform: `rotate(${(360 / n) * i}deg) translateY(-${R}px)`,
               transformOrigin: "50% 50%",
+              visibility: gap && i === 0 ? "hidden" : undefined,
             }}
           >
-            <div className="transition-transform duration-300 ease-out">
+            <div ref={i === 0 ? slotRef : undefined} className="transition-transform duration-300 ease-out">
               <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} meta={sourceName[g.sources[0]]} className="rounded-[9px] ring-1 ring-black/10" />
             </div>
           </button>
