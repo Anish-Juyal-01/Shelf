@@ -1,0 +1,39 @@
+@import "../styles/index.css";
+@source "../";
+
+/* The app is a fixed window; the site is a page that scrolls and lets you select its text. */
+@layer base {
+  html,
+  body,
+  #root {
+    height: auto;
+  }
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 72px;
+  }
+  body {
+    overflow: visible;
+    user-select: text;
+    font-size: 16px;
+  }
+}
+
+/* Hand-drawn-ish underline that isn't a link (the site's prose borrows the app's three colours). */
+.mark {
+  text-decoration: underline;
+  text-decoration-color: var(--u, var(--u-blue));
+  text-decoration-thickness: 0.07em;
+  text-underline-offset: 0.14em;
+  text-decoration-skip-ink: none;
+}
+
+@keyframes site-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.rise {
+  animation: site-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
