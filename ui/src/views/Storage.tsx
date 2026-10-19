@@ -71,7 +71,7 @@ export function Storage() {
               <li key={l.path} className="flex items-center gap-4 py-3">
                 <Stamp size="xs" tone={l.kind === "installer" ? "violet" : "ink"} tilt={0} className="w-[78px] text-center">{l.kind === "installer" ? "Installer" : "Archive"}</Stamp>
                 <div className="min-w-0 flex-1">
-                  <p className="font-display truncate text-[15px] text-ink">{l.title}</p>
+                  <p className="font-display truncate text-[20px] leading-tight text-ink">{l.title}</p>
                   <p className="typed truncate text-[11.5px] text-ink-3" title={l.path}>{l.path}</p>
                 </div>
                 <span className="typed w-[72px] text-right text-[13px] text-ink">{bytes(l.sizeBytes)}</span>
@@ -156,7 +156,7 @@ function GameRow({ game: g, onOpen, note }: { game: GameView; onOpen(): void; no
     <li className="flex items-center gap-4 py-3">
       <span className="h-9 w-2 shrink-0 rounded-[1px]" style={{ background: coverStyle(g.title).cloth.bg }} />
       <button onClick={onOpen} className="min-w-0 flex-1 cursor-pointer text-left">
-        <p className="font-display truncate text-[15px] text-ink hover:text-accent">{g.title}</p>
+        <p className="font-display truncate text-[20px] leading-tight text-ink hover:text-accent">{g.title}</p>
         <p className="typed truncate text-[11.5px] text-ink-3">
           {note ?? <>{g.sources.map((s) => sourceName[s]).join(" + ")} · last played {relative(g.lastPlayed)}</>}
         </p>

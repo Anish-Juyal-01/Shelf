@@ -135,6 +135,7 @@ let state: AppState = {
   scan: { running: false, phase: null, dirs: 0, path: null, lastRun: iso(now - 40 * 60_000), lastSeconds: 1.4, error: null },
   settings: {
     theme: "system",
+    heroStyle: "wheel",
     scanRoots: [{ path: "D:\\Games", reachable: true }, { path: "C:\\Users\\you\\Downloads", reachable: true }, { path: "E:\\Portable Games", reachable: false }],
     suggestedRoots: ["C:\\Users\\you\\Desktop", "C:\\Games"],
     drives: ["C:\\", "D:\\"],

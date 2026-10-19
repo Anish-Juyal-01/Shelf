@@ -231,6 +231,7 @@ internal sealed class AppHost : IDisposable
         var roots = _settings.ScanRoots;
         return new SettingsDto(
             _settings.Theme,
+            _settings.HeroStyle is "ring" ? "ring" : "wheel",
             roots.Select(r => new RootDto(r, Directory.Exists(r))).ToList(),
             _suggestedRoots.Where(s => !roots.Any(r => PathUtil.Key(r) == PathUtil.Key(s))).ToList(),
             drives.Select(d => d.Root).ToList(),
@@ -371,9 +372,10 @@ internal sealed class AppHost : IDisposable
         Changed?.Invoke();
     }
 
-    public void UpdateSettings(string? theme, bool? runtimeDetection, bool? watchFolders, bool? startWithWindows, bool? closeToTray)
+    public void UpdateSettings(string? theme, string? heroStyle, bool? runtimeDetection, bool? watchFolders, bool? startWithWindows, bool? closeToTray)
     {
         if (theme is "system" or "light" or "dark") _settings.Theme = theme;
+        if (heroStyle is "wheel" or "ring") _settings.HeroStyle = heroStyle;
         if (runtimeDetection is { } rd)
         {
             _settings.RuntimeDetection = rd;

@@ -44,6 +44,9 @@ public sealed class ShelfSettings
     /// <summary>system | light | dark</summary>
     public string Theme { get; set; } = "system";
 
+    /// <summary>wheel | ring — how the library hero shows your games.</summary>
+    public string HeroStyle { get; set; } = "wheel";
+
     public bool RuntimeDetection { get; set; } = true;
 
     public bool WatchFolders { get; set; } = true;

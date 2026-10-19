@@ -154,7 +154,7 @@ export function PageHead({ title, sub, children }: { title: string; sub?: ReactN
   return (
     <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-5">
       <div className="min-w-0">
-        <h1 className="font-display text-[34px] leading-[1.05] font-[560] text-ink">{title}</h1>
+        <h1 className="font-display text-[60px] leading-[0.92] text-ink">{title}</h1>
         {sub && <p className="typed mt-1.5 text-[12px] text-ink-3">{sub}</p>}
       </div>
       {children && <div className="flex items-center gap-2">{children}</div>}

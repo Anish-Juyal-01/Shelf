@@ -4,7 +4,8 @@ import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { bridge } from "./bridge/bridge";
 import type { View } from "./bridge/protocol";
-import { ResizeEdges, Sidebar, TitleBar } from "./components/Chrome";
+import { ResizeEdges, TopBar } from "./components/Chrome";
+import { Loader } from "./components/Loader";
 import { useApp } from "./store/store";
 import { Activity } from "./views/Activity";
 import { GamePage } from "./views/GamePage";
@@ -50,14 +51,13 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col">
-      <TitleBar />
+      <TopBar />
       <ResizeEdges />
       <div className="flex min-h-0 flex-1">
-        <Sidebar />
         <main ref={scroller} className="scroll-area relative min-w-0 flex-1">
           {!connected ? (
             <div className="flex h-full items-center justify-center">
-              <p className="caps text-ink-3">Opening the catalogue…</p>
+              <p className="caps text-ink-3">Opening your shelf…</p>
             </div>
           ) : (
             <AnimatePresence mode="wait" initial={false}>
@@ -74,6 +74,7 @@ export default function App() {
           )}
         </main>
       </div>
+      <Loader />
       <DropOverlay />
       <Notices />
     </div>
@@ -134,8 +135,9 @@ function DropOverlay() {
   return (
     <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-[2px]">
       <div className="slip rounded-[4px] border-2 border-dashed border-accent px-12 pt-2 pb-8 text-center">
-        <p className="caps h-[38px] pt-[7px] text-ink-3">New acquisition</p>
-        <p className="font-display mt-4 text-[26px] text-ink">Drop a game's .exe to shelve it</p>
+        <p className="font-display mt-4 text-[34px] leading-none text-ink">
+          Drop a game's <span className="uline [--u:var(--u-yellow)]">.exe</span> here
+        </p>
         <p className="mt-1 text-[13px] text-ink-2">Shelf works out the game folder and starts tracking it.</p>
       </div>
     </div>

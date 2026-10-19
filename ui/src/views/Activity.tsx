@@ -60,7 +60,7 @@ export function Activity() {
           <DayBars days={fortnight} />
         </section>
         <section>
-          <SectionTitle aside="last 7 days">Most borrowed</SectionTitle>
+          <SectionTitle aside="last 7 days">Most played</SectionTitle>
           {top.length === 0 ? (
             <p className="text-[13px] text-ink-3">Nothing played in the last seven days.</p>
           ) : (
@@ -72,7 +72,7 @@ export function Activity() {
                   <li key={id}>
                     <button onClick={() => openGame(id)} className="group block w-full cursor-pointer text-left">
                       <div className="flex items-baseline justify-between gap-3">
-                        <span className="font-display truncate text-[15px] text-ink group-hover:text-accent">
+                        <span className="font-display truncate text-[20px] leading-tight text-ink group-hover:text-accent">
                           <span className="typed mr-2 text-[11px] text-ink-4">{String(i + 1).padStart(2, "0")}</span>
                           {g?.title ?? "Removed game"}
                         </span>
@@ -224,7 +224,7 @@ function RecentSessions({ sessions, games, onOpen }: { sessions: SessionView[]; 
             <button onClick={() => onOpen(s.gameId)} className="grid w-full cursor-pointer grid-cols-[110px_120px_1fr_80px] items-center gap-3 py-2 text-left hover:bg-surface-2/60">
               <span className="text-stamp-violet">{new Date(s.start).toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short" })}</span>
               <span className="text-ink-3">{clock(s.start)}–{s.end ? clock(s.end) : "now"}</span>
-              <span className="font-display truncate text-[14px] text-ink">{games.get(s.gameId)?.title ?? s.title}</span>
+              <span className="font-display truncate text-[18px] text-ink">{games.get(s.gameId)?.title ?? s.title}</span>
               <span className="text-right text-ink-2">{duration(s.seconds)}</span>
             </button>
           </li>

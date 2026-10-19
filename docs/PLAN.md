@@ -262,3 +262,19 @@ shelf view shows games as spines whose thickness is their size on disk.
   the right page. Drag an .exe (or a folder) onto the window to add it.
 - Sleep/resume reaches the watcher from both the window (WM_POWERBROADCAST) and SystemEvents (window may never
   open when started at sign-in).
+
+## UI direction change (after phase 4)
+
+Inspired by a reference the user shared (an editorial portfolio hero: odometer loader, a deck fanned into an arch,
+a wheel of cards rising out of a painted sky, and a ring carousel the camera drops into):
+
+- **Look**: paper-white editorial page, Instrument Serif for everything that speaks, Inter Tight for controls,
+  IBM Plex Mono for numbers. Colour lives in red/blue/yellow underlines and in the sky. Night = moonlit sky.
+- **Loader**: odometer 000→100% tied to the real connection; covers dealt up, flipped and fanned; curtain lifts.
+- **Library hero**: procedural sky (SVG-turbulence clouds, sun/moon glow, stars, drifting petals) with either a
+  turning **Wheel** of covers or a **Ring** carousel you stand inside (Settings → Appearance → Library hero).
+  Plain CSS 3D, no WebGL.
+- **Headline**: one generated sentence with clickable underlined parts ("You've got 17 games … using 632 GB — 7
+  haven't been touched in three months. Or just keep playing VALORANT.").
+- The sidebar became an editorial top bar (`Shelf. / Library / Activity / Storage / Review / Settings`).
+- The five earlier directions remain in `ui/designs.html` (dev only, not shipped).

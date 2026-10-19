@@ -8,6 +8,8 @@ export type SourceKind =
 
 export type SourceState = "ok" | "notInstalled" | "partial" | "unreadable";
 export type ThemePref = "system" | "light" | "dark";
+/** Library hero: covers on a turning wheel, or a ring carousel you stand inside. */
+export type HeroStyle = "wheel" | "ring";
 
 export interface GameView {
   id: number;
@@ -112,6 +114,7 @@ export interface RootView {
 
 export interface SettingsView {
   theme: ThemePref;
+  heroStyle: HeroStyle;
   scanRoots: RootView[];
   suggestedRoots: string[];
   drives: string[];
@@ -169,7 +172,7 @@ export type HostMessage =
 
 export type ResizeEdge = "caption" | "left" | "right" | "top" | "bottom" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
-export type SettingsPatch = Partial<Pick<SettingsView, "theme" | "runtimeDetection" | "watchFolders" | "startWithWindows" | "closeToTray">>;
+export type SettingsPatch = Partial<Pick<SettingsView, "theme" | "heroStyle" | "runtimeDetection" | "watchFolders" | "startWithWindows" | "closeToTray">>;
 
 export type UiMessage =
   | { type: "ready" }

@@ -52,7 +52,7 @@ function DetectionCard({ d }: { d: DetectionView }) {
             id={`t${d.id}`}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="font-display mt-0.5 block h-10 w-full rounded-[4px] border border-transparent bg-transparent px-1 -ml-1 text-[22px] text-ink hover:border-rule focus:border-rule-strong focus:bg-surface focus:outline-none"
+            className="font-display mt-0.5 block h-10 w-full rounded-[4px] border border-transparent bg-transparent px-1 -ml-1 text-[30px] text-ink hover:border-rule focus:border-rule-strong focus:bg-surface focus:outline-none"
           />
           <p className="typed mt-1 flex items-center gap-1 text-[11.5px] break-all text-ink-3">
             {d.exe ?? d.path}

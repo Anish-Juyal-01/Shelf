@@ -1,65 +1,85 @@
 @import "tailwindcss";
-@import "@fontsource-variable/fraunces/full.css";
-@import "@fontsource-variable/fraunces/full-italic.css";
-@import "@fontsource-variable/public-sans/index.css";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@fontsource-variable/inter-tight/index.css";
 @import "@fontsource/ibm-plex-mono/400.css";
 @import "@fontsource/ibm-plex-mono/500.css";
-@import "@fontsource/ibm-plex-mono/600.css";
 
 /*
-  Shelf — "lending library".
-  Day: a reading room. Cream card stock on a paper desk, iron-gall ink, index-card rules, rubber stamps.
-  Night: the same library after hours. Deep green-black, lamplit card stock, brass fittings.
-  Colour carries meaning only: red stamp = overdue / problems, violet stamp = dates, green = playing/ok, brass/green = primary action.
+  Shelf — "games in the sky".
+  Day: paper-white editorial page; your games ride a wheel out of a painted sunset sky. Tall condensed serif for
+  everything that speaks, a tight grotesk for controls, mono for numbers. Colour lives in hand-drawn underlines
+  (blue, red, yellow) and in the sky — the chrome itself stays ink on paper.
+  Night: the same page after dark; the sky turns to a moonlit night with stars.
 */
 
 :root {
-  --bg: #ece4d3;
-  --surface: #f8f3e8;
-  --surface-2: #f1eadb;
-  --sunken: #e3d9c4;
-  --ink: #1f1b15;
-  --ink-2: #4a4337;
-  --ink-3: #776e5d;
-  --ink-4: #a49a85;
-  --rule: #d5c9b0;
-  --rule-strong: #b9aa8a;
-  --line-blue: #b7c7d6;
-  --margin-red: #cf6b5e;
-  --stamp-red: #b03526;
-  --stamp-violet: #4d3f95;
-  --accent: #23493a;
-  --accent-ink: #f6f0e2;
-  --accent-soft: #d6e1d6;
-  --ok: #2d6a45;
-  --warn: #9a5c0c;
-  --shadow: 0 1px 0 rgb(255 255 255 / 0.6) inset, 0 1px 2px rgb(60 45 20 / 0.08), 0 8px 24px -12px rgb(60 45 20 / 0.25);
-  --cover-shadow: 0 1px 1px rgb(40 28 10 / 0.18), 0 10px 22px -10px rgb(40 28 10 / 0.45);
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --surface-2: #f1eee7;
+  --sunken: #e9e5dc;
+  --ink: #151413;
+  --ink-2: #45423d;
+  --ink-3: #7b766d;
+  --ink-4: #aba59a;
+  --rule: #e2ddd2;
+  --rule-strong: #cbc4b6;
+  --u-blue: #3a5bd9;
+  --u-red: #e0433a;
+  --u-yellow: #f0b31c;
+  --u-ink: #151413;
+  --stamp-red: #d63a2f;
+  --stamp-violet: #3a5bd9;
+  --margin-red: #e0433a;
+  --line-blue: #dfe5f7;
+  --accent: #151413;
+  --accent-ink: #ffffff;
+  --accent-soft: #ebe7de;
+  --ok: #2f8f57;
+  --warn: #b7791f;
+  --sky-top: #5f86d8;
+  --sky-mid: #a9b9e6;
+  --sky-low: #f4c7a1;
+  --sky-glow: #ffd9a8;
+  --cloud: #fff7ec;
+  --cloud-shade: #f2b48f;
+  --shadow: 0 1px 2px rgb(20 18 15 / 0.06), 0 10px 30px -14px rgb(20 18 15 / 0.22);
+  --cover-shadow: 0 2px 4px rgb(20 18 15 / 0.18), 0 18px 36px -16px rgb(20 18 15 / 0.45);
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  --bg: #0d1411;
-  --surface: #152019;
-  --surface-2: #1a2620;
-  --sunken: #0a100d;
-  --ink: #ece4d2;
-  --ink-2: #c3bba8;
-  --ink-3: #8c8573;
-  --ink-4: #5f5a4d;
-  --rule: #26342c;
-  --rule-strong: #3a4b41;
-  --line-blue: #23394a;
-  --margin-red: #8f453d;
-  --stamp-red: #ec6f5c;
-  --stamp-violet: #aa9cf2;
-  --accent: #c9a55a;
-  --accent-ink: #18140b;
-  --accent-soft: #2c2a1d;
-  --ok: #72c793;
-  --warn: #e7ab52;
-  --shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 28px -14px rgb(0 0 0 / 0.7);
-  --cover-shadow: 0 1px 1px rgb(0 0 0 / 0.5), 0 12px 26px -12px rgb(0 0 0 / 0.85);
+  --bg: #0e0f13;
+  --surface: #17181e;
+  --surface-2: #1d1f26;
+  --sunken: #0a0b0e;
+  --ink: #efebe3;
+  --ink-2: #c7c2b8;
+  --ink-3: #8d887f;
+  --ink-4: #5d5a54;
+  --rule: #272932;
+  --rule-strong: #3a3d48;
+  --u-blue: #7d97ff;
+  --u-red: #ff7466;
+  --u-yellow: #ffcb4d;
+  --u-ink: #efebe3;
+  --stamp-red: #ff7466;
+  --stamp-violet: #9fb2ff;
+  --margin-red: #ff7466;
+  --line-blue: #23283a;
+  --accent: #efebe3;
+  --accent-ink: #111216;
+  --accent-soft: #262832;
+  --ok: #6bd394;
+  --warn: #f0b85a;
+  --sky-top: #070b1f;
+  --sky-mid: #18224a;
+  --sky-low: #3b3866;
+  --sky-glow: #8d84c9;
+  --cloud: #c9cbe8;
+  --cloud-shade: #4a4a7c;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -14px rgb(0 0 0 / 0.8);
+  --cover-shadow: 0 2px 4px rgb(0 0 0 / 0.5), 0 18px 36px -16px rgb(0 0 0 / 0.9);
   color-scheme: dark;
 }
 
@@ -78,13 +98,16 @@
   --color-margin-red: var(--margin-red);
   --color-stamp-red: var(--stamp-red);
   --color-stamp-violet: var(--stamp-violet);
+  --color-u-blue: var(--u-blue);
+  --color-u-red: var(--u-red);
+  --color-u-yellow: var(--u-yellow);
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
-  --font-display: "Fraunces Variable", Georgia, serif;
-  --font-sans: "Public Sans Variable", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-sans: "Inter Tight Variable", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", Consolas, monospace;
   --shadow-card: var(--shadow);
   --shadow-cover: var(--cover-shadow);
@@ -106,17 +129,16 @@
     -webkit-font-smoothing: antialiased;
     overflow: hidden;
     user-select: none;
-    font-feature-settings: "tnum" 0;
   }
   input,
   textarea {
     user-select: text;
   }
   ::selection {
-    background: color-mix(in oklab, var(--stamp-violet) 30%, transparent);
+    background: color-mix(in oklab, var(--u-yellow) 45%, transparent);
   }
   :focus-visible {
-    outline: 2px solid var(--stamp-violet);
+    outline: 2px solid var(--u-blue);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -127,18 +149,16 @@
 }
 
 @layer components {
-  /* Display serif with optical sizing on; the soft axis gives the catalogue its warmth. */
   .font-display {
     font-family: var(--font-display);
-    font-variation-settings: "SOFT" 50, "WONK" 0;
-    letter-spacing: -0.01em;
+    font-weight: 400;
+    letter-spacing: -0.012em;
   }
 
-  /* Typewritten catalogue data. */
   .typed {
     font-family: var(--font-mono);
     font-feature-settings: "tnum" 1;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
   }
 
   .caps {
@@ -149,67 +169,49 @@
     text-transform: uppercase;
   }
 
-  /* An index card: red header rule, faint blue lines. */
-  .index-card {
-    background-color: var(--surface);
-    background-image:
-      linear-gradient(var(--margin-red), var(--margin-red)),
-      repeating-linear-gradient(to bottom, transparent 0, transparent 27px, var(--line-blue) 27px, var(--line-blue) 28px);
-    background-size: 100% 1.5px, 100% 100%;
-    background-position: 0 40px, 0 41px;
-    background-repeat: no-repeat, repeat;
-    border: 1px solid var(--rule);
-    box-shadow: var(--shadow-card);
+  /* Hand-drawn-ish underline in one of the three accent colours (set --u on the element). */
+  .uline {
+    text-decoration: underline;
+    text-decoration-color: var(--u, var(--u-blue));
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.16em;
+    text-decoration-skip-ink: none;
+    cursor: pointer;
+    transition: text-decoration-thickness 0.15s, color 0.15s;
+  }
+  .uline:hover {
+    text-decoration-thickness: 4px;
   }
 
-  /* Card stock with just the red header rule, for cards whose text doesn't sit on ruled lines. */
-  .slip {
-    background-color: var(--surface);
-    background-image: linear-gradient(var(--margin-red), var(--margin-red));
-    background-size: 100% 1.5px;
-    background-position: 0 40px;
-    background-repeat: no-repeat;
-    border: 1px solid var(--rule);
-    box-shadow: var(--shadow-card);
-  }
-
+  /* Cards. The old index-card/slip classes keep their names; they're plain paper cards now. */
+  .index-card,
+  .slip,
   .paper {
     background: var(--surface);
     border: 1px solid var(--rule);
     box-shadow: var(--shadow-card);
   }
 
-  /* Rubber stamp: uneven ink via a speckle mask. */
   .stamp {
     font-family: var(--font-mono);
-    font-weight: 600;
+    font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     border: 1.5px solid currentColor;
-    border-radius: 3px;
-    padding: 1px 6px 0;
+    border-radius: 999px;
+    padding: 1px 8px 0;
     line-height: 1.5;
     white-space: nowrap;
-    -webkit-mask-image: radial-gradient(circle at 30% 40%, #000 0 55%, rgb(0 0 0 / 0.78) 56% 100%),
-      repeating-radial-gradient(circle at 17% 63%, #000 0 1.2px, rgb(0 0 0 / 0.86) 1.3px 2.4px);
-    -webkit-mask-composite: source-in;
-    mask-composite: intersect;
   }
 
-  /* Cloth texture for generated covers. */
   .cloth {
     background-image:
-      linear-gradient(90deg, rgb(0 0 0 / 0.28) 0, rgb(0 0 0 / 0.06) 7%, transparent 9%, transparent 100%),
-      repeating-linear-gradient(0deg, rgb(255 255 255 / 0.018) 0 1px, transparent 1px 3px),
-      repeating-linear-gradient(90deg, rgb(0 0 0 / 0.025) 0 1px, transparent 1px 4px);
+      linear-gradient(90deg, rgb(0 0 0 / 0.22) 0, rgb(0 0 0 / 0.04) 7%, transparent 9%, transparent 100%),
+      repeating-linear-gradient(0deg, rgb(255 255 255 / 0.018) 0 1px, transparent 1px 3px);
   }
 
   .hatch {
     background-image: repeating-linear-gradient(135deg, var(--rule-strong) 0 1px, transparent 1px 6px);
-  }
-
-  .drag-region {
-    -webkit-app-region: no-drag;
   }
 
   .scroll-area {
@@ -224,6 +226,7 @@
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

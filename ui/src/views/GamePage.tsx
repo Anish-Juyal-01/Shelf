@@ -6,7 +6,7 @@ import { bridge } from "../bridge/bridge";
 import type { GameDetail, InstallView, SessionView } from "../bridge/protocol";
 import { Cover } from "../components/Cover";
 import { Button, IconButton, MenuButton, SectionTitle, Stamp } from "../components/ui";
-import { bytes, callNumber, clock, duration, hours, relative, sourceName, stampDate } from "../lib/format";
+import { bytes, clock, duration, hours, relative, sourceName, stampDate } from "../lib/format";
 import { isOverdue } from "../lib/library";
 import { useApp } from "../store/store";
 
@@ -40,9 +40,9 @@ export function GamePage() {
 
         <div className="min-w-0">
           <p className="typed text-[11.5px] tracking-[0.12em] text-ink-3">
-            {callNumber(game.id)} · {game.sources.map((s) => sourceName[s]).join(" + ")}
+            {game.sources.map((s) => sourceName[s]).join(" + ")}
           </p>
-          <h1 className="font-display mt-1 text-[44px] leading-[1.02] font-[580] tracking-[-0.02em] text-balance text-ink">{game.title}</h1>
+          <h1 className="font-display mt-1 text-[72px] leading-[0.92] text-balance text-ink">{game.title}</h1>
           {playing && (
             <p className="mt-2 flex items-center gap-2 text-[13px] text-ok">
               <span className="pulse-dot size-2 rounded-full bg-ok" /> Playing now — started {relative(playing.since)}
@@ -94,15 +94,15 @@ function CatalogueCard({ detail }: { detail: GameDetail | null }) {
   const g = detail?.game ?? fallback!;
   const rows: [string, React.ReactNode][] = [
     ["Played", <>{hours(g.playSeconds)}{g.importedSeconds > 0 && <span className="text-ink-3"> · {hours(g.importedSeconds)} counted by {g.sources.includes("steam") ? "Steam" : "the launcher"} before Shelf</span>}</>],
-    ["Last out", g.lastPlayed ? <span className="text-stamp-violet">{stampDate(g.lastPlayed)} · {relative(g.lastPlayed)}</span> : <span className="text-ink-3">Never, as far as Shelf knows</span>],
+    ["Last played", g.lastPlayed ? <span className="text-stamp-violet">{stampDate(g.lastPlayed)} · {relative(g.lastPlayed)}</span> : <span className="text-ink-3">Never, as far as Shelf knows</span>],
     ["Sessions", detail ? `${detail.sessions.length} recorded by Shelf` : "…"],
     ["On disk", g.installed ? <>{bytes(g.sizeBytes)}{g.copies > 1 && <span className="text-stamp-red"> · {g.copies} copies</span>}</> : <span className="text-stamp-red">Folder no longer exists</span>],
     ["Location", <span className="break-all">{g.path ?? "—"}</span>],
-    ["Catalogued", stampDate(g.firstSeen)],
+    ["First seen", stampDate(g.firstSeen)],
   ];
   return (
     <dl className="index-card typed mt-7 max-w-[640px] rounded-[3px] px-6 pt-2 pb-3 text-[12.5px] leading-[28px]">
-      <dt className="caps h-[38px] pt-[7px] text-ink-3">Catalogue record</dt>
+      <dt className="caps h-[38px] pt-[7px] text-ink-3">At a glance</dt>
       <dd className="hidden" />
       {rows.map(([k, v]) => (
         <div key={k} className="grid grid-cols-[96px_1fr] gap-3">
@@ -119,7 +119,7 @@ function Sessions({ sessions, importedSeconds }: { sessions: SessionView[]; impo
   const shown = all ? sessions : sessions.slice(0, 12);
   return (
     <section>
-      <SectionTitle aside={sessions.length ? `${duration(sessions.reduce((a, s) => a + s.seconds, 0))} tracked` : undefined}>Date due slip</SectionTitle>
+      <SectionTitle aside={sessions.length ? `${duration(sessions.reduce((a, s) => a + s.seconds, 0))} tracked` : undefined}>Sessions</SectionTitle>
       {sessions.length === 0 ? (
         <p className="text-[13px] text-ink-3">
           No sessions recorded yet. Shelf counts play whenever it's running, even if you start the game from somewhere else.
