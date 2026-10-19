@@ -41,7 +41,7 @@ function useScrollProgress(section: React.RefObject<HTMLElement | null>, onFrame
   }, [section, onFrame]);
 }
 
-export function ShelfHero({ games, faller, title, children }: { games: GameView[]; faller: GameView; title: ReactNode; children: ReactNode }) {
+export function ShelfHero({ games, faller, children }: { games: GameView[]; faller: GameView; children: ReactNode }) {
   const section = useRef<HTMLElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const home = useRef<HTMLDivElement>(null); // the falling card's place on the shelf
@@ -53,7 +53,7 @@ export function ShelfHero({ games, faller, title, children }: { games: GameView[
   const [landed, setLanded] = useState(reduced);
 
   const wheelGames = useMemo(() => [faller, ...games.filter((g) => g.id !== faller.id)], [games, faller]);
-  const shelfGames = useMemo(() => games.filter((g) => g.id !== faller.id).slice(0, 7), [games, faller]);
+  const others = useMemo(() => games.filter((g) => g.id !== faller.id), [games, faller]);
 
   const frame = useMemo(
     () => (p: number) => {
@@ -105,30 +105,24 @@ export function ShelfHero({ games, faller, title, children }: { games: GameView[
   return (
     <section ref={section} className="relative" style={{ height: reduced ? undefined : "250vh" }}>
       <div ref={stage} className="sticky top-16 flex h-[calc(100svh-64px)] min-h-[620px] flex-col">
-        <div className="mx-auto w-full max-w-[1240px] flex-none px-4 pt-6 pb-6 sm:px-8 lg:px-10 lg:pt-8">
-          {title}
-          <div className="mt-6 grid items-end gap-x-12 gap-y-7 lg:grid-cols-[1fr_minmax(0,600px)]">
+        <div className="mx-auto grid w-full max-w-[1240px] flex-none items-center gap-x-14 gap-y-6 px-4 pt-6 pb-5 sm:px-8 lg:grid-cols-[1fr_auto] lg:px-10 lg:pt-8 lg:pb-7">
           <div>{children}</div>
 
-          {/* the shelf */}
-          <div className="relative">
-            <div className="flex items-end justify-end gap-[6px] pr-1">
-              {shelfGames.map((g, i) => (
-                <div key={g.id} className={`w-[52px] origin-bottom sm:w-[64px] ${i < 3 ? "max-sm:hidden" : ""}`} style={{ transform: i === 2 ? "rotate(-6deg) translateX(-4px)" : undefined }}>
-                  <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} bare className="rounded-[6px] ring-1 ring-black/10" />
-                </div>
-              ))}
-              <div ref={home} className="invisible w-[66px] flex-none sm:w-[80px]" style={{ aspectRatio: "2 / 3" }} />
+          {/* the bookcase: two shelves; the new game stands at the end of the lower one */}
+          <div className="relative justify-self-end max-lg:w-full">
+            <div className="max-lg:hidden">
+              <Row games={others.slice(0, 6)} lean={3} />
+              <Plank />
             </div>
-            <Plank />
-            <div ref={tag} className="typed absolute -top-7 right-0 rounded-full bg-u-yellow px-2.5 py-0.5 text-[11px] text-[#151413]">
+            <div className="lg:mt-5">
+              <Row games={others.slice(6, 11)} lean={1}>
+                <div ref={home} className="invisible w-[70px] flex-none lg:w-[92px]" style={{ aspectRatio: "2 / 3" }} />
+              </Row>
+              <Plank />
+            </div>
+            <div ref={tag} className="typed absolute right-0 rounded-full bg-u-yellow px-2.5 py-0.5 text-[11px] text-[#151413] max-lg:-top-6 lg:top-[calc(50%-14px)]">
               new · found in Downloads
             </div>
-            <div className="typed mt-3 flex justify-between text-[11px] text-ink-3">
-              <span>your shelf</span>
-              <span>{games.length} games</span>
-            </div>
-          </div>
           </div>
         </div>
 
@@ -144,7 +138,7 @@ export function ShelfHero({ games, faller, title, children }: { games: GameView[
 
         {/* the card in flight (above everything; hidden once it's in the wheel) */}
         {!landed && (
-          <div ref={card} className="pointer-events-none absolute top-0 left-0 z-20 opacity-0 will-change-transform" style={{ width: 80 }}>
+          <div ref={card} className="pointer-events-none absolute top-0 left-0 z-20 opacity-0 will-change-transform" style={{ width: 92 }}>
             <Cover title={faller.title} url={faller.coverUrl} iconUrl={faller.iconUrl} meta={sourceName[faller.sources[0]]} className="rounded-[9px] shadow-[0_18px_40px_-12px_rgb(0_0_0/0.55)] ring-1 ring-black/10" />
           </div>
         )}
@@ -153,13 +147,31 @@ export function ShelfHero({ games, faller, title, children }: { games: GameView[
   );
 }
 
+/** One shelf's worth of games standing side by side; one leans on its neighbour. */
+function Row({ games, lean, children }: { games: GameView[]; lean: number; children?: ReactNode }) {
+  return (
+    <div className="flex items-end justify-end gap-[7px] px-3">
+      {games.map((g, i) => (
+        <div
+          key={g.id}
+          className={`w-[52px] origin-bottom-left lg:w-[84px] ${i < games.length - 4 ? "max-sm:hidden" : ""}`}
+          style={{ transform: i === lean ? "rotate(-7deg) translateX(6px)" : undefined, zIndex: i === lean ? 0 : 1 }}
+        >
+          <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} bare className="rounded-[7px] ring-1 ring-black/10" />
+        </div>
+      ))}
+      {children}
+    </div>
+  );
+}
+
 /** A plain painted plank with two small brackets. */
 function Plank() {
   return (
     <div className="relative">
-      <div className="h-[11px] rounded-[2px] bg-surface-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.25),inset_0_-2px_0_rgb(0_0_0/0.12),0_16px_22px_-12px_rgb(0_0_0/0.45)] ring-1 ring-rule-strong" />
-      {[14, 82].map((x) => (
-        <div key={x} className="absolute top-[11px] h-5 w-[3px] rounded-b-[2px] bg-rule-strong" style={{ left: `${x}%` }} />
+      <div className="h-[12px] rounded-[2px] bg-surface-2 shadow-[inset_0_1px_0_rgb(255_255_255/0.25),inset_0_-2px_0_rgb(0_0_0/0.12),0_16px_22px_-12px_rgb(0_0_0/0.45)] ring-1 ring-rule-strong" />
+      {[10, 86].map((x) => (
+        <div key={x} className="absolute top-[12px] h-5 w-[3px] rounded-b-[2px] bg-rule-strong" style={{ left: `${x}%` }} />
       ))}
     </div>
   );
