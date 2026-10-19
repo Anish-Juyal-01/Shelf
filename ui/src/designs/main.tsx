@@ -1,18 +1,19 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "../styles/index.css";
-import { LateFees } from "./LateFees";
-import { InsertCoin } from "./InsertCoin";
-import { Inventory } from "./Inventory";
-import { AcidMelt } from "./AcidMelt";
-import { CrateDigger } from "./CrateDigger";
+import "./fonts.css";
+import { MissionControl } from "./MissionControl";
+import { Swiss } from "./Swiss";
+import { Arena } from "./Arena";
+import { Console } from "./Console";
+import { Ledger } from "./Ledger";
 
 const designs = [
-  { key: "late-fees", name: "Late Fees", note: "90s video rental store", C: LateFees },
-  { key: "insert-coin", name: "Insert Coin", note: "arcade cabinet", C: InsertCoin },
-  { key: "inventory", name: "Inventory", note: "pixel RPG bag", C: Inventory },
-  { key: "acid-melt", name: "Acid Melt", note: "Y2K rave flyer — titles melt when idle", C: AcidMelt },
-  { key: "crate-digger", name: "Crate Digger", note: "record store crates", C: CrateDigger },
+  { key: "mission-control", name: "Mission Control", note: "dense monospaced pro dashboard", C: MissionControl },
+  { key: "swiss", name: "Swiss", note: "white, black, one red, strict grid", C: Swiss },
+  { key: "arena", name: "Arena", note: "dark gallery, condensed athletic type", C: Arena },
+  { key: "console", name: "Console", note: "background takes the selected game's colours", C: Console },
+  { key: "ledger", name: "Ledger", note: "annual-report statement of games", C: Ledger },
 ];
 
 function Explorer() {
@@ -57,7 +58,7 @@ function Explorer() {
             {n + 1} · {d.name}
           </button>
         ))}
-        <a href="./index.html" style={{ color: "#888", padding: "7px 14px", textDecoration: "none" }} title="The current lending-library design">current ↗</a>
+        <a href="./index.html" style={{ color: "#888", padding: "7px 14px", textDecoration: "none" }} title="The current design">current ↗</a>
       </nav>
     </>
   );

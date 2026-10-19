@@ -1,0 +1,10 @@
+/* Fonts for the design explorer (dev only). Relative paths bypass package "exports" maps. */
+@import "../../node_modules/@fontsource-variable/jetbrains-mono/index.css";
+@import "../../node_modules/@fontsource-variable/archivo/standard.css";
+@import "../../node_modules/@fontsource/anton/index.css";
+@import "../../node_modules/@fontsource-variable/manrope/index.css";
+@import "../../node_modules/@fontsource-variable/newsreader/standard.css";
+@import "../../node_modules/@fontsource-variable/newsreader/standard-italic.css";
+@import "../../node_modules/@fontsource/ibm-plex-sans/400.css";
+@import "../../node_modules/@fontsource/ibm-plex-sans/500.css";
+@import "../../node_modules/@fontsource/ibm-plex-sans/600.css";
