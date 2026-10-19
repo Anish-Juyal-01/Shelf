@@ -5,8 +5,8 @@ import { palette, unit } from "../lib/art";
 /**
  * Game art. Real box art when Shelf has it; otherwise a generated plate in the spirit of a good album cover:
  * a soft mesh gradient (three blurred colour fields over a deep base, picked per title), fine grain, a huge cropped
- * italic initial as a graphic element, and the title set in the app's editorial serif. Games with an icon of their
- * own get it on a frosted disc. Same title → same plate, always.
+ * italic initial as a graphic element, and the title set in the app's editorial serif. The game's own icon, when
+ * there is one, always wins (IconPlate). Same title → same plate, always.
  */
 
 const GRAIN =
@@ -23,6 +23,9 @@ export const Cover = memo(function Cover({ title, url, iconUrl, meta, className,
   /** Art only, no text (when the title is shown next to it anyway). */
   bare?: boolean;
 }) {
+  // The game's own icon comes first: it's the face people recognise.
+  if (iconUrl) return <IconPlate title={title} iconUrl={iconUrl} meta={meta} className={className} large={large} bare={bare} />;
+
   if (url) {
     return (
       <div className={clsx("relative aspect-[2/3] overflow-hidden bg-[#111] shadow-cover", className)}>
@@ -59,11 +62,6 @@ export const Cover = memo(function Cover({ title, url, iconUrl, meta, className,
         {initial}
       </span>
 
-      {iconUrl && (
-        <div className="absolute top-[18%] left-1/2 flex aspect-square w-[54%] -translate-x-1/2 items-center justify-center rounded-full bg-white/15 shadow-[0_10px_30px_rgb(0_0_0/0.25)] ring-1 ring-white/25 backdrop-blur-md">
-          <img src={iconUrl} alt="" draggable={false} className="w-[62%] drop-shadow-[0_4px_10px_rgb(0_0_0/0.35)]" />
-        </div>
-      )}
 
       {/* grain + sheen */}
       <div className="absolute inset-0 opacity-[0.22] mix-blend-overlay" style={{ backgroundImage: GRAIN, backgroundSize: "160px 160px" }} />
@@ -84,3 +82,47 @@ export const Cover = memo(function Cover({ title, url, iconUrl, meta, className,
     </div>
   );
 });
+
+/**
+ * The game's native icon as its plate: the icon big and crisp in the middle, and behind it the same icon blown up
+ * and blurred, so every plate takes its colours from the game itself.
+ */
+function IconPlate({ title, iconUrl, meta, className, large, bare }: {
+  title: string;
+  iconUrl: string;
+  meta?: string;
+  className?: string;
+  large?: boolean;
+  bare?: boolean;
+}) {
+  const words = title.trim().split(/\s+/);
+  const longest = Math.max(...words.map((w) => w.length));
+  const titleCqi = Math.min(large ? 18 : 17, Math.floor(140 / Math.max(6, longest)));
+  return (
+    <div aria-hidden className={clsx("relative aspect-[2/3] overflow-hidden bg-[#141414] shadow-cover [container-type:inline-size]", className)}>
+      {/* the icon's own colours, as a soft backdrop */}
+      <img src={iconUrl} alt="" draggable={false} className="absolute inset-0 size-full scale-[2.2] object-cover opacity-90 blur-[34px] saturate-[1.5]" />
+      <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_30%,transparent_0%,rgb(0_0_0/0.35)_70%,rgb(0_0_0/0.6)_100%)]" />
+      <div className="absolute inset-0 opacity-[0.18] mix-blend-overlay" style={{ backgroundImage: GRAIN, backgroundSize: "160px 160px" }} />
+
+      {/* the icon itself */}
+      <img
+        src={iconUrl}
+        alt=""
+        draggable={false}
+        className="absolute left-1/2 w-[60%] drop-shadow-[0_14px_24px_rgb(0_0_0/0.45)]"
+        style={{ top: bare ? "50%" : "40%", transform: "translate(-50%, -50%)", imageRendering: "auto" }}
+      />
+
+      {!bare && (
+        <div className="absolute right-[9%] bottom-[7%] left-[9%] text-white">
+          {meta && <p className="mb-[0.5em] font-mono tracking-[0.18em] uppercase opacity-75" style={{ fontSize: "max(7px, 4.6cqi)" }}>{meta}</p>}
+          <p className="font-display leading-[0.92] text-balance" style={{ fontSize: `${titleCqi}cqi`, textShadow: "0 2px 14px rgb(0 0 0 / 0.45)" }}>
+            {title}
+          </p>
+        </div>
+      )}
+      <div className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-white/10 ring-inset" />
+    </div>
+  );
+}

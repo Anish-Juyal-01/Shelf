@@ -281,7 +281,8 @@ internal sealed class AppHost : IDisposable
             foreach (var i in installs)
                 foreach (var (k, v) in locator.Find(i)) found.TryAdd(k, v);
             changed |= Art.Store(g.Id, found);
-            if (!found.ContainsKey(ArtKind.Cover) && !found.ContainsKey(ArtKind.Icon) && !Art.Has(g.Id, ArtKind.Icon))
+            // Every game gets its native icon (the face Shelf shows for it), Steam games included.
+            if (!found.ContainsKey(ArtKind.Icon) && !Art.Has(g.Id, ArtKind.Icon))
             {
                 // The game's own exe: the launch exe when it lives in the game folder, otherwise the best exe the
                 // classifier finds there (VALORANT launches through the Riot Client, whose icon isn't the game's).
