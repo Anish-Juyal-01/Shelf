@@ -3,17 +3,21 @@ import { createRoot } from "react-dom/client";
 import "../styles/index.css";
 import "./fonts.css";
 import { MissionControl } from "./MissionControl";
-import { Swiss } from "./Swiss";
 import { Arena } from "./Arena";
 import { Console } from "./Console";
-import { Ledger } from "./Ledger";
+import { Fusion } from "./Fusion";
+import { Hud } from "./Hud";
+import { Garage } from "./Garage";
+import { BigPicture } from "./BigPicture";
 
 const designs = [
+  { key: "fusion", name: "Fusion", note: "Console + Arena + Mission Control", C: Fusion },
   { key: "mission-control", name: "Mission Control", note: "dense monospaced pro dashboard", C: MissionControl },
-  { key: "swiss", name: "Swiss", note: "white, black, one red, strict grid", C: Swiss },
   { key: "arena", name: "Arena", note: "dark gallery, condensed athletic type", C: Arena },
   { key: "console", name: "Console", note: "background takes the selected game's colours", C: Console },
-  { key: "ledger", name: "Ledger", note: "annual-report statement of games", C: Ledger },
+  { key: "hud", name: "HUD", note: "tactical shooter menu", C: Hud },
+  { key: "garage", name: "Garage", note: "racing telemetry", C: Garage },
+  { key: "big-picture", name: "Big Picture", note: "couch-mode icon grid with tinted side panel", C: BigPicture },
 ];
 
 function Explorer() {
@@ -25,7 +29,7 @@ function Explorer() {
   }, [i]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (/^[1-5]$/.test(e.key)) setI(Number(e.key) - 1);
+      if (/^[1-7]$/.test(e.key)) setI(Number(e.key) - 1);
       if (e.key === "ArrowRight") setI((x) => (x + 1) % designs.length);
       if (e.key === "ArrowLeft") setI((x) => (x + designs.length - 1) % designs.length);
     };
