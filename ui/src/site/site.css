@@ -47,3 +47,15 @@
 .caret {
   animation: site-caret 1s steps(1) infinite;
 }
+
+/* Where the path's X marks sit across the page: near the right edge on phones (text takes the left), wider on desktop. */
+.journey {
+  --x-right: 86%;
+  --x-left: 72%;
+}
+@media (min-width: 1024px) {
+  .journey {
+    --x-right: 70%;
+    --x-left: 30%;
+  }
+}

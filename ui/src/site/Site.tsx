@@ -1,10 +1,10 @@
 import { Download } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { sampleState } from "../bridge/previewBridge";
-import { ShelfHero } from "./ShelfHero";
+import { Journey } from "./Journey";
 
-// The Shelf website: one screen. A line on the left that writes itself, a bookcase on the right, and the sky below.
-// Scroll and the newest game falls off the shelf into the wheel, which then starts to turn.
+// The Shelf website: a line that writes itself next to a bookcase, then one journey down the page (see Journey.tsx)
+// that ends with the newest game landing in the wheel.
 
 /** Where the Download buttons point. Set this once there's a build to host. */
 const DOWNLOAD_URL = "#download";
@@ -22,10 +22,17 @@ export function Site() {
   return (
     <div className="min-h-screen bg-bg text-ink">
       <Nav />
-      <ShelfHero games={games} faller={faller}>
-        <h1 className="sr-only">Shelf: every game on your PC, even the ones you forgot.</h1>
-        <TypedLine />
-      </ShelfHero>
+      <Journey
+        games={games}
+        faller={faller}
+        download={DOWNLOAD_URL}
+        line={
+          <>
+            <h1 className="sr-only">Shelf: every game on your PC, even the ones you forgot.</h1>
+            <TypedLine />
+          </>
+        }
+      />
       <footer className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-3 px-4 py-6 text-[13px] text-ink-3 sm:px-8 lg:px-10">
         <span className="font-display text-[22px] text-ink">Shelf<span className="text-u-red">.</span></span>
         <span className="typed text-[12px]">Windows 10 &amp; 11 · works offline · never deletes anything</span>
