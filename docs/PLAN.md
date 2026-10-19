@@ -243,3 +243,22 @@ shelf view shows games as spines whose thickness is their size on disk.
 - **Background refresh** every 30 minutes (incremental) catches games installed through launchers while Shelf runs;
   scan folders are watched live with `FileSystemWatcher` and a 60 s settle delay.
 - Measured on this PC: watcher CPU 0.05–0.07 % of the machine (idle and while a game runs), ~55 MB working set.
+
+## Phase 4 notes
+
+- **Look**: "lending library" — Fraunces (catalogue headings), Public Sans (UI), IBM Plex Mono (typed data), all bundled
+  locally. Day = cream card stock and ink; Night = green-black reading room with brass. Covers are generated
+  cloth-bound "books" until phase 5 fetches art. Stamps carry meaning: OVERDUE (installed, unplayed 90+ days,
+  red), CHECKED OUT (playing now, green), OUT 12 OCT (last played, violet).
+- **Views**: Library (search, source/overdue chips, installed/all/gone, sort), Game page (catalogue record, session
+  "date due slip", every copy with its detection signals and the launcher's own uninstall), Activity (last 7
+  days timeline with "Shelf wasn't running" hatching, 14-day bars, most played), Storage (drive meters, the shelf
+  of spines sized by disk use, overdue, duplicate copies, leftovers), Review (accept with your title / not a
+  game), Settings (scan folders + whole-drive search, tracking switches, honest launcher status, theme, Start
+  with Windows, close to tray).
+- **Host**: same shape as Waypoint — WPF borderless window + WebView2, embedded UI served from
+  `https://shelf.local`, tray icon, single instance, Task Scheduler sign-in task. Windows notifications (tray
+  balloons) for "looks like you're playing X" and new games when the window isn't in front; clicking one opens
+  the right page. Drag an .exe (or a folder) onto the window to add it.
+- Sleep/resume reaches the watcher from both the window (WM_POWERBROADCAST) and SystemEvents (window may never
+  open when started at sign-in).

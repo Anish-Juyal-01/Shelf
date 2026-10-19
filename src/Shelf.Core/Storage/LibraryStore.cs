@@ -35,6 +35,9 @@ public sealed record GameRow(
 public sealed record InstallRow(long Id, long GameId, SourceKind Source, string InstallPath, string? LaunchExe, string? LaunchUri,
     string? LaunchArgs, string? WorkingDir, string State, long? SizeBytes);
 
+public sealed record InstallDetail(long Id, long GameId, SourceKind Source, string InstallPath, string? LaunchExe, string? LaunchUri,
+    string? LaunchArgs, string? WorkingDir, string State, long? SizeBytes, string? UninstallCommand, int Confidence, IReadOnlyList<string> Signals);
+
 public sealed record DetectionRow(long Id, string Path, string? Exe, string Origin, int Confidence, string SuggestedTitle,
     long? SizeBytes, IReadOnlyList<string> Signals, DateTime Found);
 
@@ -387,6 +390,50 @@ public sealed class LibraryStore(ShelfDb db)
         var set = new HashSet<string>();
         while (rd.Read()) set.Add(rd.GetString(0));
         return set;
+    }
+
+    /// <summary>Every install of one game, with what the game page needs (uninstall command, detection signals).</summary>
+    public List<InstallDetail> InstallsFor(long gameId)
+    {
+        using var c = Db.Connect();
+        using var cmd = ShelfDb.Command(c, """
+            SELECT id, source, install_path, launch_exe, launch_uri, launch_args, working_dir, state, size_bytes,
+                   uninstall_command, confidence, signals
+            FROM installs WHERE game_id = $g
+            ORDER BY state = 'installed' DESC, id
+            """, ("$g", gameId));
+        using var rd = cmd.ExecuteReader();
+        var list = new List<InstallDetail>();
+        while (rd.Read())
+        {
+            list.Add(new InstallDetail(rd.GetInt64(0), gameId, Enum.Parse<SourceKind>(rd.GetString(1)), rd.GetString(2), Str(rd, 3), Str(rd, 4),
+                Str(rd, 5), Str(rd, 6), rd.GetString(7), rd.IsDBNull(8) ? null : rd.GetInt64(8), Str(rd, 9), rd.GetInt32(10),
+                rd.IsDBNull(11) ? [] : JsonSerializer.Deserialize<List<string>>(rd.GetString(11)) ?? []));
+        }
+        return list;
+    }
+
+    public InstallDetail? Install(long installId)
+    {
+        using var c = Db.Connect();
+        var gameId = (long?)ShelfDb.Scalar(c, "SELECT game_id FROM installs WHERE id = $id", ("$id", installId));
+        return gameId is null ? null : InstallsFor(gameId.Value).FirstOrDefault(i => i.Id == installId);
+    }
+
+    /// <summary>What each launcher reader reported last time, for honest status in Settings.</summary>
+    public List<SourceResult> SourceStatuses()
+    {
+        using var c = Db.Connect();
+        using var cmd = ShelfDb.Command(c, "SELECT source, state, message, games_found FROM source_status");
+        using var rd = cmd.ExecuteReader();
+        var list = new List<SourceResult>();
+        while (rd.Read())
+        {
+            if (!Enum.TryParse<SourceKind>(rd.GetString(0), out var kind) || !Enum.TryParse<SourceState>(rd.GetString(1), out var st)) continue;
+            // Count only; the installs themselves live in the installs table.
+            list.Add(new SourceResult(kind, st, rd.GetString(2), new InstallRecord[rd.GetInt32(3)]));
+        }
+        return [.. list.OrderBy(s => s.Source)];
     }
 
     private const string DetectionSelect =

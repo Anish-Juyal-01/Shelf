@@ -37,6 +37,8 @@ public sealed class ShelfWatcher : IDisposable
     private readonly IGpuSampler? _gpu;
     private readonly IClock _clock;
     private readonly ShelfWatcherOptions _o;
+    /// <summary>Raised after the watcher changed the library on its own (new download found, background refresh).</summary>
+    public event Action? LibraryChanged;
     private readonly SessionTracker _tracker;
     private readonly RuntimeDetector _detector;
     private readonly object _gate = new();
@@ -53,6 +55,20 @@ public sealed class ShelfWatcher : IDisposable
     public event Action<WatcherNotice>? Notice;
 
     public SessionTracker Tracker => _tracker;
+
+    /// <summary>Games being played right now and when each session started (safe to call from any thread).</summary>
+    public IReadOnlyDictionary<long, DateTime> Playing
+    {
+        get
+        {
+            lock (_gate) return _tracker.Playing;
+        }
+    }
+
+    public bool Running => _runId != 0;
+
+    /// <summary>Turns unknown-game detection on or off without restarting.</summary>
+    public bool RuntimeDetectionEnabled { get; set; } = true;
     public int KnownGames => _index.Count;
     public IReadOnlyList<string> WatchedFolders => _folders?.Roots ?? [];
     public bool GpuAvailable => _gpu?.Available ?? false;
@@ -88,6 +104,16 @@ public sealed class ShelfWatcher : IDisposable
         }
         _thread = new Thread(Loop) { IsBackground = true, Name = "Shelf watcher", Priority = ThreadPriority.BelowNormal };
         _thread.Start();
+    }
+
+    /// <summary>Replaces the watched download folders (empty or null turns folder watching off).</summary>
+    public void SetWatchFolders(IEnumerable<string>? roots)
+    {
+        var next = roots is null || !_o.WatchFolders ? null : new FolderWatcher(roots, _clock, _o.FolderQuiet);
+        var old = Interlocked.Exchange(ref _folders, next);
+        old?.Dispose();
+        if (next is not null)
+            foreach (var f in next.Failed) Notice?.Invoke(new WatcherNotice("folder", $"Can't watch {f} for new downloads (missing or no access)"));
     }
 
     public void Stop()
@@ -148,7 +174,7 @@ public sealed class ShelfWatcher : IDisposable
             }
             _tracker.Observe(running);
 
-            if (_o.RuntimeDetection && _foreground is not null) CheckForeground(procs, running);
+            if (_o.RuntimeDetection && RuntimeDetectionEnabled && _foreground is not null) CheckForeground(procs, running);
 
             var now = _clock.UtcNow;
             if (now - _lastRunBeat >= _o.RunHeartbeat && _runId != 0)
@@ -157,13 +183,14 @@ public sealed class ShelfWatcher : IDisposable
                 _lastRunBeat = now;
             }
         }
-        if (_folders is not null) HandleFolders();
+        if (_folders is { } folders) HandleFolders(folders);
         if (_refresher is not null && _clock.UtcNow - _lastFullRefresh >= _o.FullRefresh)
         {
             _lastFullRefresh = _clock.UtcNow;
             var r = _refresher.RefreshAll();
             foreach (var t in r.Sync.NewGames) Notice?.Invoke(new WatcherNotice("new", $"New game installed: {t}"));
             RefreshIndex();
+            LibraryChanged?.Invoke();
         }
     }
 
@@ -189,12 +216,15 @@ public sealed class ShelfWatcher : IDisposable
         var title = FolderClassifier.TitleFor(root, exe);
         var id = _library.AddRuntimeDetection(exe, title, _detector.LastSignals(_o.Runtime.Sustain), _clock.UtcNow);
         if (id is not null)
+        {
             Notice?.Invoke(new WatcherNotice("suggest", $"Looks like you're playing {title} — add it?", DetectionId: id));
+            LibraryChanged?.Invoke();
+        }
     }
 
-    private void HandleFolders()
+    private void HandleFolders(FolderWatcher folders)
     {
-        var (settled, overflowed) = _folders!.Poll();
+        var (settled, overflowed) = folders.Poll();
         if (_refresher is null) return;
         foreach (var path in settled.Concat(overflowed))
         {
@@ -205,6 +235,7 @@ public sealed class ShelfWatcher : IDisposable
             if (sync.NewDetections > 0)
                 Notice?.Invoke(new WatcherNotice("review", $"{sync.NewDetections} new folder(s) in {path} to review"));
             if (sync.NewGames.Count > 0) RefreshIndex();
+            if (sync.NewGames.Count > 0 || sync.NewDetections > 0) LibraryChanged?.Invoke();
         }
     }
 

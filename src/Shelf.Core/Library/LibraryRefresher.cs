@@ -42,7 +42,10 @@ public sealed class LibraryRefresher(SystemContext ctx, ShelfPaths paths, Librar
     }
 
     /// <summary>Re-scans one folder (a new download that just settled) and syncs only what it found.</summary>
-    public (ScanResult Scan, SyncResult Sync) RefreshFolder(string path, CancellationToken ct = default)
+    public (ScanResult Scan, SyncResult Sync) RefreshFolder(string path, CancellationToken ct = default) => RefreshFolder(path, null, ct);
+
+    /// <summary>Scans one folder or a whole drive (not remembered as a scan folder) and syncs what it found.</summary>
+    public (ScanResult Scan, SyncResult Sync) RefreshFolder(string path, Action<ScanEvent>? onEvent, CancellationToken ct = default)
     {
         lock (_gate)
         {
@@ -52,7 +55,7 @@ public sealed class LibraryRefresher(SystemContext ctx, ShelfPaths paths, Librar
                 .Concat(LauncherDirs.Find(ctx))
                 .ToList();
             var scanner = new FolderScanner(new ScanOptions { SkipPaths = known }, Cache);
-            var scan = scanner.Scan(path, ct: ct);
+            var scan = scanner.Scan(path, onEvent, ct);
             ScanCacheStore.Save(paths, Cache);
             var snap = LibraryBuilder.Build([], [scan]);
             return (scan, store.Sync(snap, clock.UtcNow));

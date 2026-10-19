@@ -36,10 +36,22 @@ public static class JsonStore
     }
 }
 
-/// <summary>User settings. Phase 2 only needs the scan roots; the app adds theme, API keys and so on.</summary>
+/// <summary>User settings (<c>%APPDATA%\Shelf\settings.json</c>).</summary>
 public sealed class ShelfSettings
 {
     public List<string> ScanRoots { get; set; } = [];
+
+    /// <summary>system | light | dark</summary>
+    public string Theme { get; set; } = "system";
+
+    public bool RuntimeDetection { get; set; } = true;
+
+    public bool WatchFolders { get; set; } = true;
+
+    public bool CloseToTray { get; set; } = true;
+
+    /// <summary>First run done: scan folders were offered once.</summary>
+    public bool OnboardingDone { get; set; }
 
     public static ShelfSettings Load(ShelfPaths paths) => JsonStore.Load<ShelfSettings>(paths.SettingsFile);
 
