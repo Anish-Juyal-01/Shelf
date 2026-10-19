@@ -259,3 +259,8 @@ export function createPreviewBridge(): Bridge {
     },
   };
 }
+
+/** Sample data for the design explorer (designs.html). */
+export function sampleState(): AppState {
+  return state;
+}
