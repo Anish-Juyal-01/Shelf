@@ -44,6 +44,9 @@ public sealed class ShelfSettings
     /// <summary>system | light | dark</summary>
     public string Theme { get; set; } = "system";
 
+    /// <summary>Colour theme: sunset | aurora | neon | dune | deepsea | sakura.</summary>
+    public string Palette { get; set; } = "sunset";
+
     /// <summary>wheel | ring — how the library hero shows your games.</summary>
     public string HeroStyle { get; set; } = "wheel";
 

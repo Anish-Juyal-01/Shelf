@@ -41,7 +41,7 @@ internal sealed record ScanStatusDto(bool Running, string? Phase, int Dirs, stri
 
 internal sealed record RootDto(string Path, bool Reachable);
 
-internal sealed record SettingsDto(string Theme, string HeroStyle, IReadOnlyList<RootDto> ScanRoots, IReadOnlyList<string> SuggestedRoots, IReadOnlyList<string> Drives,
+internal sealed record SettingsDto(string Theme, string Palette, string HeroStyle, IReadOnlyList<RootDto> ScanRoots, IReadOnlyList<string> SuggestedRoots, IReadOnlyList<string> Drives,
     bool RuntimeDetection, bool WatchFolders, bool StartWithWindows, bool CloseToTray, string DataDir);
 
 internal sealed record PlayingDto(long GameId, DateTime Since);

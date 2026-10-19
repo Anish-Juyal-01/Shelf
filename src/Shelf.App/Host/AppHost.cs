@@ -236,6 +236,7 @@ internal sealed class AppHost : IDisposable
         var roots = _settings.ScanRoots;
         return new SettingsDto(
             _settings.Theme,
+            Palettes.Contains(_settings.Palette) ? _settings.Palette : "sunset",
             _settings.HeroStyle is "ring" ? "ring" : "wheel",
             roots.Select(r => new RootDto(r, Directory.Exists(r))).ToList(),
             _suggestedRoots.Where(s => !roots.Any(r => PathUtil.Key(r) == PathUtil.Key(s))).ToList(),
@@ -419,10 +420,13 @@ internal sealed class AppHost : IDisposable
         Changed?.Invoke();
     }
 
-    public void UpdateSettings(string? theme, string? heroStyle, bool? runtimeDetection, bool? watchFolders, bool? startWithWindows, bool? closeToTray)
+    private static readonly HashSet<string> Palettes = ["sunset", "aurora", "neon", "dune", "deepsea", "sakura"];
+
+    public void UpdateSettings(string? theme, string? palette, string? heroStyle, bool? runtimeDetection, bool? watchFolders, bool? startWithWindows, bool? closeToTray)
     {
         if (theme is "system" or "light" or "dark") _settings.Theme = theme;
         if (heroStyle is "wheel" or "ring") _settings.HeroStyle = heroStyle;
+        if (palette is not null && Palettes.Contains(palette)) _settings.Palette = palette;
         if (runtimeDetection is { } rd)
         {
             _settings.RuntimeDetection = rd;

@@ -8,6 +8,8 @@ export type SourceKind =
 
 export type SourceState = "ok" | "notInstalled" | "partial" | "unreadable";
 export type ThemePref = "system" | "light" | "dark";
+export type { PaletteId } from "../lib/palettes";
+import type { PaletteId } from "../lib/palettes";
 /** Library hero: covers on a turning wheel, or a ring carousel you stand inside. */
 export type HeroStyle = "wheel" | "ring";
 
@@ -120,6 +122,8 @@ export interface RootView {
 
 export interface SettingsView {
   theme: ThemePref;
+  /** Colour theme (see lib/palettes.ts). */
+  palette: PaletteId;
   heroStyle: HeroStyle;
   scanRoots: RootView[];
   suggestedRoots: string[];
@@ -178,7 +182,7 @@ export type HostMessage =
 
 export type ResizeEdge = "caption" | "left" | "right" | "top" | "bottom" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
-export type SettingsPatch = Partial<Pick<SettingsView, "theme" | "heroStyle" | "runtimeDetection" | "watchFolders" | "startWithWindows" | "closeToTray">>;
+export type SettingsPatch = Partial<Pick<SettingsView, "theme" | "palette" | "heroStyle" | "runtimeDetection" | "watchFolders" | "startWithWindows" | "closeToTray">>;
 
 export type UiMessage =
   | { type: "ready" }

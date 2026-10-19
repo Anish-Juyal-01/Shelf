@@ -3,6 +3,7 @@ import { FolderPlus, HardDrive, Plus, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { bridge } from "../bridge/bridge";
 import type { SettingsPatch, SourceState } from "../bridge/protocol";
+import { ThemePicker } from "../components/ThemePicker";
 import { Button, IconButton, PageHead, SectionTitle, Segmented, Toggle } from "../components/ui";
 import { useApp } from "../store/store";
 
@@ -15,6 +16,20 @@ export function Settings() {
   return (
     <div className="mx-auto max-w-[860px] px-8 pt-7 pb-16">
       <PageHead title="Settings" />
+
+      <Section title="Appearance">
+        <ThemePicker value={s.palette} dark={document.documentElement.dataset.theme === "dark"} onChange={(v) => update({ palette: v })} />
+        <div className="h-3" />
+        <Row label="Library hero" hint="Your games on a turning wheel over the clouds, or a ring you stand inside (drag to spin).">
+          <Segmented label="Library hero" value={s.heroStyle} onChange={(v) => update({ heroStyle: v })}
+            options={[{ value: "wheel", label: "Wheel" }, { value: "ring", label: "Ring" }]} />
+        </Row>
+        <Row label="Day or night" hint="System follows Windows' light or dark setting. Every colour theme has both.">
+          <Segmented label="Day or night" value={s.theme} onChange={(v) => update({ theme: v })}
+            options={[{ value: "system", label: "System" }, { value: "light", label: "Day" }, { value: "dark", label: "Night" }]} />
+        </Row>
+      </Section>
+
 
       <Section title="Scan folders" aside="loose games, zips, repacks">
         <p className="mb-3 text-[13px] text-ink-2">
@@ -79,16 +94,6 @@ export function Settings() {
         </ul>
       </Section>
 
-      <Section title="Appearance">
-        <Row label="Library hero" hint="Your games on a turning wheel over the clouds, or a ring you stand inside (drag to spin).">
-          <Segmented label="Library hero" value={s.heroStyle} onChange={(v) => update({ heroStyle: v })}
-            options={[{ value: "wheel", label: "Wheel" }, { value: "ring", label: "Ring" }]} />
-        </Row>
-        <Row label="Theme" hint="System follows Windows' light or dark setting.">
-          <Segmented label="Theme" value={s.theme} onChange={(v) => update({ theme: v })}
-            options={[{ value: "system", label: "System" }, { value: "light", label: "Sunset" }, { value: "dark", label: "Night" }]} />
-        </Row>
-      </Section>
 
       <Section title="App">
         <Row label="Start with Windows" hint="Starts in the tray at sign-in, so play time is counted even when you never open Shelf.">

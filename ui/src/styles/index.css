@@ -6,6 +6,9 @@
 @import "@fontsource/ibm-plex-mono/500.css";
 
 /*
+  Base tokens below are the Sunset palette, used for the very first paint; all six colour themes (including Sunset)
+  are generated from src/lib/palettes.ts and injected at startup.
+
   Shelf — "games in the sky".
   Day: paper-white editorial page; your games ride a wheel out of a painted sunset sky. Tall condensed serif for
   everything that speaks, a tight grotesk for controls, mono for numbers. Colour lives in hand-drawn underlines
@@ -28,9 +31,9 @@
   --u-red: #e0433a;
   --u-yellow: #f0b31c;
   --u-ink: #151413;
-  --stamp-red: #d63a2f;
-  --stamp-violet: #3a5bd9;
-  --margin-red: #e0433a;
+  --stamp-red: var(--u-red);
+  --stamp-violet: var(--u-blue);
+  --margin-red: var(--u-red);
   --line-blue: #dfe5f7;
   --accent: #151413;
   --accent-ink: #ffffff;
@@ -63,9 +66,9 @@
   --u-red: #ff7466;
   --u-yellow: #ffcb4d;
   --u-ink: #efebe3;
-  --stamp-red: #ff7466;
-  --stamp-violet: #9fb2ff;
-  --margin-red: #ff7466;
+  --stamp-red: var(--u-red);
+  --stamp-violet: var(--u-blue);
+  --margin-red: var(--u-red);
   --line-blue: #23283a;
   --accent: #efebe3;
   --accent-ink: #111216;

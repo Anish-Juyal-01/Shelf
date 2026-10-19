@@ -65,11 +65,11 @@ export const useApp = create<Store>((set, get) => ({
   receive(m) {
     switch (m.type) {
       case "hello":
-        applyTheme(m.state.settings.theme);
+        applyTheme(m.state.settings.theme, m.state.settings.palette);
         set({ connected: true, version: m.version, maximized: m.maximized, state: m.state });
         break;
       case "state": {
-        applyTheme(m.state.settings.theme);
+        applyTheme(m.state.settings.theme, m.state.settings.palette);
         set({ state: m.state });
         const open = get().gameId;
         if (open !== null) bridge.send({ type: "getGame", id: open });

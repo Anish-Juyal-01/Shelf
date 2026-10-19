@@ -194,8 +194,9 @@ internal sealed class UiBridge
                     var p = m.GetProperty("patch");
                     var theme = p.TryGetProperty("theme", out var th) ? th.GetString() : null;
                     var hero = p.TryGetProperty("heroStyle", out var hs) ? hs.GetString() : null;
+                    var palette = p.TryGetProperty("palette", out var pl) ? pl.GetString() : null;
                     var (rd, wf, sw, ct) = (OptBool(p, "runtimeDetection"), OptBool(p, "watchFolders"), OptBool(p, "startWithWindows"), OptBool(p, "closeToTray"));
-                    await Task.Run(() => _host.UpdateSettings(theme, hero, rd, wf, sw, ct));
+                    await Task.Run(() => _host.UpdateSettings(theme, palette, hero, rd, wf, sw, ct));
                     break;
 
                 case "openDataFolder":
