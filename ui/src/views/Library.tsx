@@ -180,7 +180,7 @@ const GameCard = memo(function GameCard({ game: g, playing, onOpen }: { game: Ga
   return (
     <button onClick={onOpen} className="group block w-full cursor-pointer text-left" aria-label={`${g.title}, open details`}>
       <div className="relative transition-transform duration-300 ease-out group-hover:-translate-y-1.5 group-hover:rotate-[-1deg]">
-        <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} className={clsx("rounded-[12px] ring-1 ring-black/5", !g.installed && "opacity-45 grayscale", g.hidden && "opacity-60")} />
+        <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} bare className={clsx("rounded-[12px] ring-1 ring-black/5", !g.installed && "opacity-45 grayscale", g.hidden && "opacity-60")} />
         {playing && (
           <span className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded-full bg-[var(--surface)] px-2.5 py-0.5 text-[11px] font-medium text-ok shadow">
             <span className="pulse-dot size-1.5 rounded-full bg-ok" /> playing

@@ -1,3 +1,4 @@
+import { sourceName } from "../lib/format";
 import { useEffect, useRef, useState } from "react";
 import type { GameView } from "../bridge/protocol";
 import { Cover } from "./Cover";
@@ -56,7 +57,7 @@ export function WheelHero({ games, onOpen }: { games: GameView[]; onOpen(id: num
             }}
           >
             <div className="transition-transform duration-300 ease-out">
-              <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} className="rounded-[9px] ring-1 ring-black/10" />
+              <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} meta={sourceName[g.sources[0]]} className="rounded-[9px] ring-1 ring-black/10" />
             </div>
           </button>
         ))}
@@ -146,7 +147,7 @@ export function RingHero({ games, onOpen }: { games: GameView[]; onOpen(id: numb
             className="absolute cursor-pointer"
             style={{ width: cardW, left: -cardW / 2, top: -cardW * 0.75, backfaceVisibility: "hidden" }}
           >
-            <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} className="rounded-[10px] ring-1 ring-black/10" />
+            <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} meta={sourceName[g.sources[0]]} className="rounded-[10px] ring-1 ring-black/10" />
           </button>
         ))}
       </div>

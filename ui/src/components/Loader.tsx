@@ -1,3 +1,4 @@
+import { sourceName } from "../lib/format";
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../store/store";
 import { Cover } from "./Cover";
@@ -100,7 +101,7 @@ export function Loader() {
             >
               {/* face */}
               <div style={{ backfaceVisibility: "hidden" }}>
-                <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} className="rounded-[9px] ring-1 ring-black/10" />
+                <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} meta={sourceName[g.sources[0]]} className="rounded-[9px] ring-1 ring-black/10" />
               </div>
               {/* back */}
               <div

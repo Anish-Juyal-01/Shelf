@@ -30,7 +30,7 @@ export function GamePage() {
 
       <div className="grid grid-cols-[minmax(200px,280px)_1fr] gap-10 max-[820px]:grid-cols-1">
         <div className="relative max-w-[280px]">
-          <Cover title={game.title} url={game.coverUrl} iconUrl={game.iconUrl} large className={clsx(!game.installed && "opacity-50 grayscale")} />
+          <Cover title={game.title} url={game.coverUrl} iconUrl={game.iconUrl} bare large className={clsx("rounded-[18px]", !game.installed && "opacity-50 grayscale")} />
           {overdue && (
             <span className="absolute -right-3 bottom-8">
               <Tag tone="red" size="lg" className="bg-[var(--surface)]">Untouched 90+ days</Tag>

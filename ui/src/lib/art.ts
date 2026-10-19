@@ -1,25 +1,34 @@
 import { hash, normalize } from "./library";
 
-/** [deep, mid, glow] */
-export const PALETTES: [string, string, string][] = [
-  ["#0B1026", "#3B2C85", "#FF5E78"],
-  ["#06141B", "#0F5257", "#7CF2C8"],
-  ["#1A0B2E", "#6A1B9A", "#FFB347"],
-  ["#0D1B2A", "#1B4965", "#F4D35E"],
-  ["#14070F", "#7A1E3A", "#FF8C42"],
-  ["#03120E", "#1D5C3A", "#D7FF6B"],
-  ["#100C23", "#2E3192", "#4DE1FF"],
-  ["#1C0A00", "#8C3B0C", "#FFD166"],
-  ["#0A0F14", "#334155", "#E2E8F0"],
-  ["#160018", "#A0076A", "#FFC2E2"],
-  ["#001219", "#005F73", "#EE9B00"],
-  ["#120A1F", "#4C1D95", "#C4B5FD"],
+/**
+ * Plate palettes for games without real art: three harmonious colours that become soft mesh-gradient fields over a
+ * deep base. Hand-picked pairs that look good blurred together (no muddy mixes).
+ * [base, field A, field B, field C]
+ */
+export const PALETTES: [string, string, string, string][] = [
+  ["#14102b", "#ff5f6d", "#ffc371", "#6a5acd"],
+  ["#0b1d26", "#00c9a7", "#4d8af0", "#c4fcef"],
+  ["#1d0b24", "#c471f5", "#fa71cd", "#4f2d7f"],
+  ["#10161f", "#f7971e", "#ffd200", "#e4572e"],
+  ["#071a1a", "#43e97b", "#38f9d7", "#127369"],
+  ["#160f1f", "#f093fb", "#f5576c", "#5b2a86"],
+  ["#0d1326", "#4facfe", "#00f2fe", "#3a1c71"],
+  ["#1a1410", "#e8a87c", "#c38d9e", "#41b3a3"],
+  ["#0f0f14", "#8e9eab", "#eef2f3", "#4b6cb7"],
+  ["#1b0f0a", "#ff9a44", "#fc6076", "#7a2e1e"],
+  ["#0a1424", "#5ee7df", "#b490ca", "#1f3c88"],
+  ["#14200f", "#c6ea8d", "#fe90af", "#2f5233"],
 ];
 
-/** The poster palette for a title: [deep, mid, glow]. */
-export function palette(title: string): [string, string, string] {
+/** The plate palette for a title. */
+export function palette(title: string): [string, string, string, string] {
   return PALETTES[hash(normalize(title)) % PALETTES.length];
 }
 
-/** One colour that stands for a game in charts and maps (its poster's mid tone). */
+/** One colour that stands for a game in charts and maps. */
 export const gameColor = (title: string) => palette(title)[1];
+
+/** Deterministic 0..1 values for a title (salted for different uses). */
+export function unit(title: string, salt: number): number {
+  return (hash(normalize(title) + "#" + salt) % 10_000) / 10_000;
+}

@@ -1,136 +1,86 @@
 import clsx from "clsx";
 import { memo } from "react";
-import { PALETTES } from "../lib/art";
-import { hash, normalize } from "../lib/library";
+import { palette, unit } from "../lib/art";
 
 /**
- * Game art. Real box art when Shelf has it (Steam's cache, Xbox logos — later fetched art); otherwise a generated
- * key-art poster: a scene picked from the title (retro sun over mountains, a ringed planet, a light burst or a
- * synthwave grid) in one of a dozen palettes, with the game's own icon as the centrepiece when there is one and a
- * bold title. Same title → same poster, always.
+ * Game art. Real box art when Shelf has it; otherwise a generated plate in the spirit of a good album cover:
+ * a soft mesh gradient (three blurred colour fields over a deep base, picked per title), fine grain, a huge cropped
+ * italic initial as a graphic element, and the title set in the app's editorial serif. Games with an icon of their
+ * own get it on a frosted disc. Same title → same plate, always.
  */
 
+const GRAIN =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>\")";
 
-
-function ridge(seed: number, base: number, rough: number): string {
-  const pts: string[] = ["0,100"];
-  for (let i = 0; i <= 10; i++) {
-    const h = base - (((seed >>> (i * 3)) & 7) / 7) * rough;
-    pts.push(`${i * 10},${h.toFixed(1)}`);
-  }
-  pts.push("100,100");
-  return pts.join(" ");
-}
-
-export const Cover = memo(function Cover({ title, url, iconUrl, className, large, bare }: {
+export const Cover = memo(function Cover({ title, url, iconUrl, meta, className, large, bare }: {
   title: string;
   url: string | null;
   iconUrl?: string | null;
+  /** Small label above the title (e.g. where the game came from). */
+  meta?: string;
   className?: string;
   large?: boolean;
-  /** Art only, no title (when the title is shown next to it anyway). */
+  /** Art only, no text (when the title is shown next to it anyway). */
   bare?: boolean;
 }) {
   if (url) {
     return (
       <div className={clsx("relative aspect-[2/3] overflow-hidden bg-[#111] shadow-cover", className)}>
         <img src={url} alt="" draggable={false} loading="lazy" className="size-full object-cover" />
+        <div className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-white/10 ring-inset" />
       </div>
     );
   }
 
-  const h = hash(normalize(title));
-  const [deep, mid, glow] = PALETTES[h % PALETTES.length];
-  const scene = (h >>> 5) % 4;
+  const [base, a, b, c] = palette(title);
+  const u = (s: number) => unit(title, s);
+  const field = (color: string, x: number, y: number, size: number) =>
+    `radial-gradient(${size}% ${size * 0.8}% at ${x}% ${y}%, ${color} 0%, ${color}cc 22%, transparent 70%)`;
+  const mesh = [
+    field(a, 15 + u(1) * 70, 8 + u(2) * 40, 70 + u(3) * 30),
+    field(b, 10 + u(4) * 80, 45 + u(5) * 45, 65 + u(6) * 35),
+    field(c, u(7) * 100, u(8) * 100, 55 + u(9) * 30),
+  ].join(",");
+  const initial = (title.trim()[0] ?? "?").toUpperCase();
   const words = title.trim().split(/\s+/);
   const longest = Math.max(...words.map((w) => w.length));
-  const size = large ? Math.min(44, Math.floor(360 / Math.max(6, longest))) : Math.min(22, Math.floor(150 / Math.max(5, longest)));
+  // Title size relative to the plate's width (cqi), so it fits at every size from hero cards to the game page.
+  const titleCqi = Math.min(large ? 20 : 19, Math.floor(150 / Math.max(6, longest)));
 
   return (
-    <div aria-hidden className={clsx("relative aspect-[2/3] overflow-hidden shadow-cover", className)} style={{ background: deep }}>
-      <svg viewBox="0 0 100 150" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 size-full">
-        <defs>
-          <linearGradient id={`sky${h}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={deep} />
-            <stop offset="0.62" stopColor={mid} />
-            <stop offset="1" stopColor={glow} stopOpacity="0.85" />
-          </linearGradient>
-          <radialGradient id={`glow${h}`} cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor={glow} stopOpacity="0.9" />
-            <stop offset="1" stopColor={glow} stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <rect width="100" height="150" fill={`url(#sky${h})`} />
+    <div aria-hidden className={clsx("relative aspect-[2/3] overflow-hidden shadow-cover [container-type:inline-size]", className)} style={{ background: base }}>
+      <div className="absolute inset-0" style={{ backgroundImage: mesh, filter: "blur(10px) saturate(1.1)", transform: "scale(1.15)" }} />
 
-        {scene === 0 && (
-          <>
-            {/* retro sun with cut stripes, mountains in front */}
-            <circle cx="50" cy="78" r="30" fill={glow} />
-            {[0, 1, 2, 3, 4].map((i) => (
-              <rect key={i} x="18" y={84 + i * 5.2} width="64" height={1 + i * 0.7} fill={mid} />
-            ))}
-            <polygon points={ridge(h, 96, 22)} transform="translate(0,12)" fill={deep} opacity="0.75" />
-            <polygon points={ridge(h >>> 7, 104, 16)} transform="translate(0,20)" fill={deep} />
-          </>
-        )}
-        {scene === 1 && (
-          <>
-            {/* ringed planet over a star field */}
-            {Array.from({ length: 26 }, (_, i) => (
-              <circle key={i} cx={((h >>> (i % 20)) * (i + 3)) % 100} cy={((h >>> ((i + 5) % 20)) * (i + 7)) % 90} r={i % 5 === 0 ? 0.7 : 0.35} fill="#fff" opacity={0.75} />
-            ))}
-            <circle cx="50" cy="66" r="42" fill={`url(#glow${h})`} opacity="0.55" />
-            <circle cx="50" cy="66" r="22" fill={glow} />
-            <circle cx="44" cy="60" r="22" fill={mid} opacity="0.45" />
-            <ellipse cx="50" cy="66" rx="40" ry="8" fill="none" stroke={glow} strokeWidth="2.2" transform="rotate(-18 50 66)" />
-          </>
-        )}
-        {scene === 2 && (
-          <>
-            {/* light burst */}
-            {Array.from({ length: 14 }, (_, i) => (
-              <polygon key={i} points="50,62 47,-20 53,-20" fill={glow} opacity={i % 2 ? 0.16 : 0.3} transform={`rotate(${i * (360 / 14) + (h % 20)} 50 62)`} />
-            ))}
-            <circle cx="50" cy="62" r="34" fill={`url(#glow${h})`} />
-            <circle cx="50" cy="62" r="9" fill="#fff" opacity="0.9" />
-          </>
-        )}
-        {scene === 3 && (
-          <>
-            {/* synthwave grid floor */}
-            <circle cx="50" cy="72" r="26" fill={`url(#glow${h})`} />
-            <rect y="84" width="100" height="66" fill={deep} />
-            {Array.from({ length: 9 }, (_, i) => (
-              <line key={`h${i}`} x1="0" x2="100" y1={86 + Math.pow(i, 1.7) * 2.1} y2={86 + Math.pow(i, 1.7) * 2.1} stroke={glow} strokeWidth="0.5" opacity="0.8" />
-            ))}
-            {Array.from({ length: 13 }, (_, i) => (
-              <line key={`v${i}`} x1={50 + (i - 6) * 3} y1="84" x2={50 + (i - 6) * 26} y2="150" stroke={glow} strokeWidth="0.5" opacity="0.8" />
-            ))}
-          </>
-        )}
-      </svg>
+      {/* the initial: huge, italic, cropped off the edge */}
+      <span
+        className="font-display absolute leading-none text-white italic select-none"
+        style={{ fontSize: "150cqi", right: `${-24 + u(10) * 14}%`, top: `${-32 + u(11) * 16}%`, opacity: 0.18, mixBlendMode: "overlay" }}
+      >
+        {initial}
+      </span>
 
-      {/* The game's own icon, when Shelf could extract one, is the hero of the poster. */}
       {iconUrl && (
-        <img
-          src={iconUrl}
-          alt=""
-          draggable={false}
-          className="absolute top-[24%] left-1/2 w-[46%] -translate-x-1/2"
-          style={{ filter: `drop-shadow(0 0 18px ${glow}) drop-shadow(0 6px 10px rgb(0 0 0 / 0.5))` }}
-        />
+        <div className="absolute top-[18%] left-1/2 flex aspect-square w-[54%] -translate-x-1/2 items-center justify-center rounded-full bg-white/15 shadow-[0_10px_30px_rgb(0_0_0/0.25)] ring-1 ring-white/25 backdrop-blur-md">
+          <img src={iconUrl} alt="" draggable={false} className="w-[62%] drop-shadow-[0_4px_10px_rgb(0_0_0/0.35)]" />
+        </div>
       )}
 
-      {/* film grain */}
-      <div className="absolute inset-0 opacity-[0.18] mix-blend-overlay" style={{ backgroundImage: "radial-gradient(rgb(255 255 255 / .9) 0.5px, transparent 0.6px)", backgroundSize: "3px 3px" }} />
-      {!bare && <div className="absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-black/70 to-transparent" />}
+      {/* grain + sheen */}
+      <div className="absolute inset-0 opacity-[0.22] mix-blend-overlay" style={{ backgroundImage: GRAIN, backgroundSize: "160px 160px" }} />
+      <div className="absolute inset-0 bg-[linear-gradient(155deg,rgb(255_255_255/0.16),transparent_38%)]" />
 
-      {!bare && <span
-        className="absolute right-[9%] bottom-[7%] left-[9%] font-sans leading-[0.92] font-[800] tracking-[-0.03em] text-white uppercase"
-        style={{ fontSize: size, textShadow: `0 2px 12px rgb(0 0 0 / 0.5), 0 0 24px ${glow}55` }}
-      >
-        {title}
-      </span>}
+      {!bare && (
+        <>
+          <div className="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black/50 via-black/12 to-transparent" />
+          <div className="absolute right-[9%] bottom-[7%] left-[9%] text-white">
+            {meta && <p className="mb-[0.5em] font-mono tracking-[0.18em] uppercase opacity-80" style={{ fontSize: "max(7px, 4.6cqi)" }}>{meta}</p>}
+            <p className="font-display leading-[0.92] text-balance" style={{ fontSize: `${titleCqi}cqi`, textShadow: "0 2px 16px rgb(0 0 0 / 0.35)" }}>
+              {title}
+            </p>
+          </div>
+        </>
+      )}
+      <div className="pointer-events-none absolute inset-0 rounded-[inherit] ring-1 ring-white/10 ring-inset" />
     </div>
   );
 });
