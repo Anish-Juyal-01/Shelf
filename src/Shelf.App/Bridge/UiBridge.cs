@@ -196,7 +196,9 @@ internal sealed class UiBridge
                     var hero = p.TryGetProperty("heroStyle", out var hs) ? hs.GetString() : null;
                     var palette = p.TryGetProperty("palette", out var pl) ? pl.GetString() : null;
                     var (rd, wf, sw, ct) = (OptBool(p, "runtimeDetection"), OptBool(p, "watchFolders"), OptBool(p, "startWithWindows"), OptBool(p, "closeToTray"));
-                    await Task.Run(() => _host.UpdateSettings(theme, palette, hero, rd, wf, sw, ct));
+                    var webArt = OptBool(p, "webArt");
+                    var gridKey = p.TryGetProperty("steamGridDbKey", out var gk) ? gk.GetString() : null;
+                    await Task.Run(() => _host.UpdateSettings(theme, palette, hero, rd, wf, sw, ct, webArt, gridKey));
                     break;
 
                 case "openDataFolder":

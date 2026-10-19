@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Shelf.Core.Art;
 
 namespace Shelf.Core.Storage;
@@ -52,6 +53,23 @@ public sealed class ArtCache(ShelfPaths paths)
 
     public bool Has(long gameId, ArtKind kind) => Get(gameId, kind) is not null;
 
+    /// <summary>When a game's art was last looked up on the web, what it matched, and whether SteamGridDB was used.</summary>
+    public sealed record WebLookup(DateTime Tried, string? Match, bool WithGrid);
+
+    private string WebFile(long gameId) => Path.Combine(Root, gameId.ToString(), "web.json");
+
+    public WebLookup? WebMark(long gameId)
+    {
+        try { return File.Exists(WebFile(gameId)) ? JsonSerializer.Deserialize<WebLookup>(File.ReadAllText(WebFile(gameId))) : null; }
+        catch (Exception e) when (e is IOException or JsonException or UnauthorizedAccessException) { return null; }
+    }
+
+    public void MarkWeb(long gameId, WebLookup mark)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(WebFile(gameId))!);
+        File.WriteAllText(WebFile(gameId), JsonSerializer.Serialize(mark));
+    }
+
     /// <summary>The cached file for a game's art, or null.</summary>
     public string? Get(long gameId, ArtKind kind)
     {
@@ -64,7 +82,7 @@ public sealed class ArtCache(ShelfPaths paths)
     public string? Resolve(string relative)
     {
         var parts = relative.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length != 2 || !long.TryParse(parts[0], out _) || parts[1].Contains("..")) return null;
+        if (parts.Length != 2 || !long.TryParse(parts[0], out _) || parts[1].Contains("..") || parts[1].EndsWith(".json", StringComparison.OrdinalIgnoreCase)) return null;
         var full = Path.GetFullPath(Path.Combine(Root, parts[0], parts[1]));
         return full.StartsWith(Path.GetFullPath(Root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) && File.Exists(full) ? full : null;
     }

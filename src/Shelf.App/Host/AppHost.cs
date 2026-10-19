@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using Shelf.App.Bridge;
 using Shelf.Core.Art;
 using Shelf.App.Shell;
@@ -90,6 +91,7 @@ internal sealed class AppHost : IDisposable
         Watcher.RefreshIndex();
         Changed?.Invoke();
         SyncArt(ct);
+        StartWebArt();
         AnnounceNew(r.Sync, toast: !firstRun);
         if (firstRun && !_settings.OnboardingDone)
         {
@@ -245,6 +247,8 @@ internal sealed class AppHost : IDisposable
             _settings.WatchFolders,
             SafeStartupEnabled(),
             _settings.CloseToTray,
+            _settings.WebArt,
+            !string.IsNullOrWhiteSpace(_settings.SteamGridDbKey),
             Paths.DataDir);
     }
 
@@ -297,6 +301,55 @@ internal sealed class AppHost : IDisposable
             }
         }
         if (changed) Changed?.Invoke();
+    }
+
+    // ── Art from the web ─────────────────────────────────────────────────────────────────────────────
+
+    private static readonly HttpClient Http = CreateHttp();
+    private readonly CancellationTokenSource _life = new();
+    private int _webArtRunning;
+
+    private static HttpClient CreateHttp()
+    {
+        var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Shelf/" + (typeof(AppHost).Assembly.GetName().Version?.ToString(3) ?? "1.0"));
+        return http;
+    }
+
+    /// <summary>Fills in missing covers, heroes, logos and icons from the web, in the background (one run at a time).</summary>
+    private void StartWebArt()
+    {
+        if (!_settings.WebArt || Interlocked.Exchange(ref _webArtRunning, 1) == 1) return;
+        var key = _settings.SteamGridDbKey;
+        Task.Run(async () =>
+        {
+            try
+            {
+                var sync = new WebArtSync(Library, Art, new WebArt(Http, key), SystemClock.Instance);
+                var unsent = 0;
+                var s = await sync.RunAsync((_, kinds) =>
+                {
+                    // Show art as it arrives, a few games at a time.
+                    if (kinds.Count > 0 && ++unsent >= 4)
+                    {
+                        unsent = 0;
+                        Changed?.Invoke();
+                    }
+                }, _life.Token);
+                if (unsent > 0 || s.Images > 0) Changed?.Invoke();
+                if (s.Failed > 0 && s.Failed == s.Looked)
+                    Notice?.Invoke(new HostNotice("info", "Couldn't reach the internet to look up game art. Shelf will try again next time."));
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception e)
+            {
+                Notice?.Invoke(new HostNotice("error", $"Looking up game art failed: {e.Message}"));
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _webArtRunning, 0);
+            }
+        });
     }
 
     private string? ArtUrl(long gameId, ArtKind kind)
@@ -423,8 +476,21 @@ internal sealed class AppHost : IDisposable
 
     private static readonly HashSet<string> Palettes = ["sunset", "aurora", "neon", "dune", "deepsea", "sakura", "onyx", "ember", "volt", "cobalt", "crimson", "gold"];
 
-    public void UpdateSettings(string? theme, string? palette, string? heroStyle, bool? runtimeDetection, bool? watchFolders, bool? startWithWindows, bool? closeToTray)
+    public void UpdateSettings(string? theme, string? palette, string? heroStyle, bool? runtimeDetection, bool? watchFolders, bool? startWithWindows, bool? closeToTray,
+        bool? webArt = null, string? steamGridDbKey = null)
     {
+        var lookAgain = false;
+        if (webArt is { } wa)
+        {
+            lookAgain = wa && !_settings.WebArt;
+            _settings.WebArt = wa;
+        }
+        if (steamGridDbKey is not null)
+        {
+            var key = steamGridDbKey.Trim();
+            _settings.SteamGridDbKey = key.Length > 0 ? key : null;
+            lookAgain |= key.Length > 0;
+        }
         if (theme is "system" or "light" or "dark") _settings.Theme = theme;
         if (heroStyle is "wheel" or "ring") _settings.HeroStyle = heroStyle;
         if (palette is not null && Palettes.Contains(palette)) _settings.Palette = palette;
@@ -452,6 +518,7 @@ internal sealed class AppHost : IDisposable
         }
         SaveSettings();
         Changed?.Invoke();
+        if (lookAgain) StartWebArt();
     }
 
     public void OpenFolder(string path)
@@ -486,6 +553,7 @@ internal sealed class AppHost : IDisposable
 
     public void Dispose()
     {
+        _life.Cancel();
         _scanCts?.Cancel();
         Watcher.Stop();
         Watcher.Dispose();

@@ -1,6 +1,6 @@
 import clsx from "clsx";
 import { FolderPlus, HardDrive, Plus, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { bridge } from "../bridge/bridge";
 import type { SettingsPatch, SourceState } from "../bridge/protocol";
 import { ThemePicker } from "../components/ThemePicker";
@@ -95,6 +95,18 @@ export function Settings() {
       </Section>
 
 
+      <Section title="Art" aside="for covers and icons Shelf can't find on disk">
+        <Row label="Look up missing art online" hint="Sends only game titles — to Steam's store search, and to SteamGridDB if you add a key. Art already on your PC is never replaced.">
+          <Toggle checked={s.webArt} onChange={(v) => update({ webArt: v })} label="Look up missing art online" />
+        </Row>
+        <Row
+          label="SteamGridDB key"
+          hint={<>Optional and free. Adds icons, and art for games that aren't on Steam. Get one at steamgriddb.com → Preferences → API.</>}
+        >
+          <KeyField has={s.hasSteamGridDbKey} onSave={(k) => update({ steamGridDbKey: k })} />
+        </Row>
+      </Section>
+
       <Section title="App">
         <Row label="Start with Windows" hint="Starts in the tray at sign-in, so play time is counted even when you never open Shelf.">
           <Toggle checked={s.startWithWindows} onChange={(v) => update({ startWithWindows: v })} label="Start with Windows" />
@@ -111,7 +123,7 @@ export function Settings() {
       </Section>
 
       <p className="typed mt-10 text-center text-[11px] text-ink-4">
-        Shelf {version} · everything stays on this PC · Shelf never changes, moves or deletes files in game folders
+        Shelf {version} · your library stays on this PC · Shelf never changes, moves or deletes files in game folders
       </p>
     </div>
   );
@@ -123,6 +135,25 @@ function Section({ title, aside, children }: { title: string; aside?: string; ch
       <SectionTitle aside={aside}>{title}</SectionTitle>
       {children}
     </section>
+  );
+}
+
+/** A write-only field: the key is never sent back to the page, only whether one is saved. */
+function KeyField({ has, onSave }: { has: boolean; onSave(key: string): void }) {
+  const [value, setValue] = useState("");
+  return (
+    <div className="flex shrink-0 items-center gap-2">
+      <input
+        type="password"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={has ? "Saved — paste to replace" : "Paste key"}
+        aria-label="SteamGridDB key"
+        className="h-7 w-[190px] rounded-[6px] border border-rule-strong bg-surface px-2.5 text-[12.5px] text-ink outline-none placeholder:text-ink-4 focus:border-ink-3"
+      />
+      <Button small tone="primary" disabled={value.trim() === ""} onClick={() => { onSave(value.trim()); setValue(""); }}>Save</Button>
+      {has && <Button small tone="quiet" onClick={() => onSave("")}>Remove</Button>}
+    </div>
   );
 }
 

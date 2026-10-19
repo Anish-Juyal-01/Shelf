@@ -147,6 +147,8 @@ let state: AppState = {
     watchFolders: true,
     startWithWindows: true,
     closeToTray: true,
+    webArt: true,
+    hasSteamGridDbKey: false,
     dataDir: "C:\\Users\\you\\AppData\\Roaming\\Shelf",
   },
   playing: [{ gameId: 3, since: iso(now - 47 * 60_000) }],
@@ -216,7 +218,11 @@ export function createPreviewBridge(): Bridge {
           push();
           break;
         case "updateSettings":
-          state = { ...state, settings: { ...state.settings, ...message.patch } };
+          {
+            const { steamGridDbKey, ...patch } = message.patch;
+            const hasKey = steamGridDbKey === undefined ? state.settings.hasSteamGridDbKey : steamGridDbKey.trim() !== "";
+            state = { ...state, settings: { ...state.settings, ...patch, hasSteamGridDbKey: hasKey } };
+          }
           push();
           break;
         case "removeRoot":

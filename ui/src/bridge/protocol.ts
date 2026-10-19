@@ -132,6 +132,9 @@ export interface SettingsView {
   watchFolders: boolean;
   startWithWindows: boolean;
   closeToTray: boolean;
+  /** Look up missing art online (Steam store, and SteamGridDB with a key). */
+  webArt: boolean;
+  hasSteamGridDbKey: boolean;
   dataDir: string;
 }
 
@@ -182,7 +185,10 @@ export type HostMessage =
 
 export type ResizeEdge = "caption" | "left" | "right" | "top" | "bottom" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 
-export type SettingsPatch = Partial<Pick<SettingsView, "theme" | "palette" | "heroStyle" | "runtimeDetection" | "watchFolders" | "startWithWindows" | "closeToTray">>;
+export type SettingsPatch = Partial<Pick<SettingsView, "theme" | "palette" | "heroStyle" | "runtimeDetection" | "watchFolders" | "startWithWindows" | "closeToTray" | "webArt">> & {
+  /** A new SteamGridDB key; "" removes it. */
+  steamGridDbKey?: string;
+};
 
 export type UiMessage =
   | { type: "ready" }

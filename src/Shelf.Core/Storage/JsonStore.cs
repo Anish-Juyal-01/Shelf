@@ -56,6 +56,12 @@ public sealed class ShelfSettings
 
     public bool CloseToTray { get; set; } = true;
 
+    /// <summary>Look up missing art online (Steam store search; SteamGridDB too when a key is set).</summary>
+    public bool WebArt { get; set; } = true;
+
+    /// <summary>Optional SteamGridDB API key. Kept only in this settings file; never sent to the UI.</summary>
+    public string? SteamGridDbKey { get; set; }
+
     /// <summary>First run done: scan folders were offered once.</summary>
     public bool OnboardingDone { get; set; }
 
