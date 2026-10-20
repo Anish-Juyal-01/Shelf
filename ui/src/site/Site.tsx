@@ -1,19 +1,21 @@
 import { Download } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { SITE_GAMES } from "./siteGames";
+import { randomGames } from "./siteGames";
 import { Journey } from "./Journey";
+import { StatusBar } from "./StatusBar";
 
 // The Shelf website: a line that writes itself next to a bookcase, then one journey down the page (see Journey.tsx)
 // that ends with the newest game landing in the wheel.
 
 /** Where the Download buttons point. Set this once there's a build to host. */
 const DOWNLOAD_URL = "#download";
-const GITHUB_URL = "https://github.com/Anish-Juyal-01";
+const PROFILE_URL = "https://github.com/Anish-Juyal-01";
+const REPO_URL = "https://github.com/Anish-Juyal-01/Shelf";
 
 export function Site() {
-  const games = useMemo(() => [...SITE_GAMES].sort((a, b) => Date.parse(b.lastPlayed ?? b.firstSeen) - Date.parse(a.lastPlayed ?? a.firstSeen)), []);
-  // The one that falls: a loose-folder game, exactly the kind Shelf exists to catch.
-  const faller = games.find((g) => g.title === "Hollow Knight") ?? games[0];
+  // Every visit gets its own shuffled library; the first game is the one that falls off the shelf.
+  const [games] = useState(randomGames);
+  const faller = games[0];
   return (
     <div className="min-h-screen bg-bg text-ink">
       <Nav />
@@ -21,16 +23,43 @@ export function Site() {
         games={games}
         faller={faller}
         download={DOWNLOAD_URL}
+        github={REPO_URL}
         line={
           <>
             <h1 className="sr-only">Shelf: every game on your PC, even the ones you forgot.</h1>
+            <StatusBar games={games} />
             <TypedLine />
+            <p className="mt-7 max-w-[44ch] text-[clamp(16px,1.3vw,18.5px)] leading-[1.55] text-ink-2">
+              A Windows app that finds every game you have — from every launcher, and the ones you unzipped into a folder —
+              tracks what you play, and shows what's filling your drives.
+            </p>
+            <p className="typed mt-7 text-[12px] text-ink-3">Free &amp; open source · Windows 10 &amp; 11 · no account · works offline</p>
           </>
         }
       />
-      <footer className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-3 px-4 py-6 text-[13px] text-ink-3 sm:px-8 lg:px-10">
-        <span className="font-display text-[22px] text-ink">Shelf<span className="text-u-red">.</span></span>
-        <span>Keeps track of every game you download.</span>
+      <footer className="border-t border-rule">
+        <div className="mx-auto grid max-w-[1480px] gap-8 px-4 py-12 text-[14px] text-ink-3 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr] lg:px-14">
+          <div>
+            <span className="flex items-center gap-2.5">
+              <img src="./icon.svg" alt="" className="size-9" />
+              <span className="font-display text-[36px] leading-none text-ink">Shelf<span className="text-u-red">.</span></span>
+            </span>
+            <p className="mt-3 max-w-[34ch]">Keeps track of every game you download, so you stop forgetting them and your drive stops filling up.</p>
+          </div>
+          <div className="space-y-2">
+            <p className="caps text-ink-4">Project</p>
+            <a className="block hover:text-ink" href={REPO_URL} target="_blank" rel="noreferrer">Source on GitHub</a>
+            <a className="block hover:text-ink" href={`${REPO_URL}#readme`} target="_blank" rel="noreferrer">How to install</a>
+            <a className="block hover:text-ink" href={`${REPO_URL}/blob/main/LICENSE`} target="_blank" rel="noreferrer">MIT license</a>
+          </div>
+          <div className="space-y-2">
+            <p className="caps text-ink-4">Promise</p>
+            <p>Reads, never writes.</p>
+            <p>Never deletes a thing.</p>
+            <p>Your library stays on your PC.</p>
+          </div>
+        </div>
+        <div className="typed mx-auto max-w-[1480px] px-4 pb-8 text-[11.5px] text-ink-4 sm:px-8 lg:px-14">Made by Anish Juyal · game art belongs to its publishers</div>
       </footer>
     </div>
   );
@@ -39,13 +68,16 @@ export function Site() {
 function Nav() {
   return (
     <header className="sticky top-0 z-30 bg-bg/85 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-3 px-4 sm:px-8 lg:px-10">
-        <a href="#" className="font-display text-[30px] leading-none">
-          Shelf<span className="text-u-red">.</span>
+      <div className="mx-auto flex h-[72px] max-w-[1480px] items-center gap-3 px-4 sm:px-8 lg:px-14">
+        <a href="#" className="flex items-center gap-2.5" aria-label="Shelf">
+          <img src="./icon.svg" alt="" className="size-10" />
+          <span className="font-display text-[40px] leading-none">
+            Shelf<span className="text-u-red">.</span>
+          </span>
         </a>
         <span className="flex-1" />
         <a
-          href={GITHUB_URL}
+          href={PROFILE_URL}
           target="_blank"
           rel="noreferrer"
           aria-label="GitHub"
@@ -109,11 +141,14 @@ function TypedLine() {
   }, [n, back, i, line, reduced]);
 
   return (
-    <p aria-hidden className="font-display min-h-[2.85em] text-[clamp(48px,5.6vw,92px)] leading-[0.95] tracking-[-0.02em] text-balance max-lg:min-h-[2em]">
-      <span className="mark" style={{ ["--u" as string]: `var(--u-${line.u})` }}>
-        {line.text.slice(0, n)}
-      </span>
-      <span className="caret ml-[0.04em] inline-block h-[0.78em] w-[0.06em] translate-y-[0.06em] bg-ink" />
-    </p>
+    // A fixed height for the longest line, with the text sitting at the bottom, so nothing below it jumps as it types.
+    <div aria-hidden className="font-display flex min-h-[2.85em] flex-col lg:min-h-[1.9em] justify-end text-[clamp(52px,6.2vw,100px)] leading-[0.95] tracking-[-0.02em]">
+      <p className="text-balance">
+        <span className="mark" style={{ ["--u" as string]: `var(--u-${line.u})` }}>
+          {line.text.slice(0, n)}
+        </span>
+        <span className="caret ml-[0.04em] inline-block h-[0.78em] w-[0.06em] translate-y-[0.06em] bg-ink" />
+      </p>
+    </div>
   );
 }

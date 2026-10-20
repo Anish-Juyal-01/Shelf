@@ -29,6 +29,25 @@ const LIST: [title: string, appId: number, source: SourceKind, gb: number, playe
   ["Lethal Company", 1966720, "steam", 1.4, 15],
 ];
 
+/**
+ * A fresh library for each visit: the games in a random order, and a random history, so the shelf, the wheel and
+ * every example on the page come out different each time. About a third haven't been played for 90+ days.
+ */
+export function randomGames(): GameView[] {
+  const games = SITE_GAMES.map((g) => ({ ...g }));
+  for (let i = games.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [games[i], games[j]] = [games[j], games[i]];
+  }
+  games.forEach((g, i) => {
+    // Always a few idle ones (positions 2–4), so the storage example has something to show.
+    const idle = i >= 2 && (i <= 4 || Math.random() < 0.3);
+    const days = idle ? 95 + Math.floor(Math.random() * 330) : Math.floor(Math.random() * 40);
+    g.lastPlayed = new Date(now - days * DAY - Math.random() * DAY).toISOString();
+  });
+  return games;
+}
+
 export const SITE_GAMES: GameView[] = LIST.map(([title, appId, source, gb, days], i) => ({
   id: i + 1,
   title,

@@ -38,6 +38,18 @@
   animation: site-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
+/* The cover strip slides by a quarter (one copy of the row), so it loops seamlessly. */
+@keyframes site-strip {
+  to {
+    transform: translateX(-25%);
+  }
+}
+@keyframes site-float {
+  to {
+    translate: 0 -10px;
+  }
+}
+
 /* The typing caret. */
 @keyframes site-caret {
   50% {
@@ -61,4 +73,14 @@
     --x-right: 70%;
     --x-left: 30%;
   }
+}
+
+/* A new background wash fades in over the previous one, which stays underneath until it's covered. */
+@keyframes site-tint-in {
+  from {
+    opacity: 0;
+  }
+}
+.site-tint {
+  animation: site-tint-in 1.8s ease both;
 }

@@ -2,8 +2,11 @@ import { ArrowDown, Download } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { GameView } from "../bridge/protocol";
 import { Cover } from "../components/Cover";
-import { WheelHero } from "../components/Heroes";
-import { sourceName } from "../lib/format";
+import { ArrangeTheShelf } from "./endings/ArrangeTheShelf";
+import { FillTheDrive } from "./endings/FillTheDrive";
+import { SearchYourPC } from "./endings/SearchYourPC";
+import { bytes, relative, sourceName } from "../lib/format";
+import { CoverStrip, Drift, Numbers, Numeral } from "./Decor";
 import { VIGNETTES } from "./Vignettes";
 
 // The website is one journey. The newest game sits at the end of a bookcase; as you scroll it leaves the shelf and
@@ -70,7 +73,7 @@ interface Geometry {
   hy: number;
 }
 
-export function Journey({ games, faller, line, download }: { games: GameView[]; faller: GameView; line: ReactNode; download: string }) {
+export function Journey({ games, faller, line, download, github }: { games: GameView[]; faller: GameView; line: ReactNode; download: string; github: string }) {
   const box = useRef<HTMLDivElement>(null);
   const home = useRef<HTMLDivElement>(null);
   const slot = useRef<HTMLDivElement>(null);
@@ -81,12 +84,13 @@ export function Journey({ games, faller, line, download }: { games: GameView[]; 
   const geo = useRef<Geometry | null>(null);
   const reduced = useMemo(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
   const [landed, setLanded] = useState(reduced);
+  const [picked, setPicked] = useState<GameView | null>(null);
+  const [ending, setEnding] = useState(0);
   const [reached, setReached] = useState(reduced ? STOPS.length : 0);
   const [path, setPath] = useState<{ d: string; w: number; h: number } | null>(null);
   const landedRef = useRef(landed);
   landedRef.current = landed;
 
-  const wheelGames = useMemo(() => [faller, ...games.filter((g) => g.id !== faller.id)], [games, faller]);
   const others = useMemo(() => games.filter((g) => g.id !== faller.id), [games, faller]);
 
   // Lay the path through the shelf spot, every X and the wheel slot.
@@ -188,7 +192,7 @@ export function Journey({ games, faller, line, download }: { games: GameView[]; 
       )}
 
       {/* top: the line that writes itself, and the bookcase */}
-      <section className="relative mx-auto grid min-h-[calc(100svh-64px)] max-w-[1240px] items-center gap-x-14 gap-y-10 px-4 py-10 sm:px-8 lg:grid-cols-[1fr_auto] lg:px-10">
+      <section className="relative mx-auto grid max-w-[1480px] items-center gap-x-14 gap-y-10 px-4 pt-10 pb-20 lg:pt-[7vh] lg:pb-[16vh] sm:px-8 lg:grid-cols-[1fr_auto] lg:px-14">
         <div className="relative z-10">{line}</div>
         <div className="relative justify-self-end max-lg:w-full">
           <div className="max-lg:hidden">
@@ -202,22 +206,26 @@ export function Journey({ games, faller, line, download }: { games: GameView[]; 
             <Plank />
           </div>
           <div className="typed mt-6 flex items-center justify-end gap-2 text-[12px] text-ink-3">
-            <ArrowDown className="size-3.5" /> scroll — follow the new one
+            <ArrowDown className="size-3.5" /> scroll — follow the new one, just found in Downloads
           </div>
         </div>
       </section>
 
+      <CoverStrip games={others} />
+
       {/* the stops */}
       {STOPS.map((s, i) => (
-        <section key={s.title} className="relative mx-auto max-w-[1240px] px-4 sm:px-8 lg:px-10">
-          <div className="relative flex min-h-[86svh] items-center py-16">
+        <section key={s.title} className="relative mx-auto max-w-[1480px] px-4 sm:px-8 lg:px-14">
+          <div className="relative flex min-h-[72svh] items-center py-14">
+            <Numeral n={i + 1} side={s.side} />
+            <Drift games={others} seed={i} side={s.side} />
             <div
-              className={`relative z-10 max-w-[400px] max-lg:pr-[24%] ${s.side === "right" ? "lg:mr-auto lg:ml-[4%]" : "lg:mr-[6%] lg:ml-auto"}`}
+              className={`relative z-10 max-w-[460px] max-lg:pr-[24%] ${s.side === "right" ? "lg:mr-auto lg:ml-[4%]" : "lg:mr-[6%] lg:ml-auto"}`}
             >
-              <div className="typed text-[12px] text-ink-3">{String(i + 1).padStart(2, "0")}</div>
-              <h2 className="font-display mt-2 text-[clamp(34px,3.8vw,58px)] leading-[0.98] text-balance">{s.title}</h2>
+              <div className="typed text-[12px] text-ink-3">{String(i + 1).padStart(2, "0")} / {String(STOPS.length).padStart(2, "0")}</div>
+              <h2 className="font-display mt-2 text-[clamp(38px,4.4vw,70px)] leading-[0.95] text-balance">{s.title}</h2>
               <p className="mt-4 text-[clamp(15.5px,1.2vw,17.5px)] leading-[1.6] text-ink-2">{s.body}</p>
-              <Vignette i={i} on={i < reached} />
+              <Vignette i={i} on={i < reached} faller={faller} games={games} />
             </div>
             <div
               ref={(el) => {
@@ -232,23 +240,65 @@ export function Journey({ games, faller, line, download }: { games: GameView[]; 
         </section>
       ))}
 
-      {/* the end of the path: the sky with a slot held open, and the download, in one box */}
+      <Numbers />
+
+      {/* the end of the path: a small interactive Shelf with a spot held open, and the download, in one box */}
       <section className="relative px-2 pt-[8svh] pb-[22svh] sm:px-5">
         <div className="mx-auto max-w-[1320px] overflow-hidden rounded-[28px] bg-surface shadow-[0_2px_4px_rgb(0_0_0/0.04),0_40px_80px_-40px_rgb(0_0_0/0.45)] ring-1 ring-rule-strong">
-          <div className="relative h-[min(520px,58svh)] overflow-hidden">
-            <WheelHero games={wheelGames} onOpen={() => {}} running={landed} gap={!landed} slotRef={slot} />
+          {/* three endings to try; the book lands in the first, and the tabs unlock once it has */}
+          <div className="flex flex-wrap items-center justify-center gap-1 border-b border-rule bg-surface px-3 py-2.5" role="tablist">
+            {ENDINGS.map((e, i) => (
+              <button
+                key={e.name}
+                role="tab"
+                aria-selected={ending === i}
+                disabled={!landed}
+                onClick={() => setEnding(i)}
+                title={landed ? e.hint : "Scroll on — the new game lands here first"}
+                className={`cursor-pointer rounded-full px-4 py-1.5 text-[13.5px] transition-colors disabled:cursor-default ${ending === i ? "bg-ink text-bg" : "text-ink-2 hover:bg-sunken disabled:opacity-40 disabled:hover:bg-transparent"}`}
+              >
+                {e.name}
+              </button>
+            ))}
           </div>
+          {(() => {
+            const E = ENDINGS[ending].C;
+            return <E games={games} faller={faller} landed={landed} slotRef={slot} onOpen={setPicked} />;
+          })()}
           <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-6 border-t border-rule px-6 py-7 sm:px-10 sm:py-8">
-            <div>
-              <h2 className="font-display text-[clamp(34px,3.6vw,56px)] leading-[0.95]">{landed ? "On your shelf. Every one." : "Last stop."}</h2>
-              <p className="typed mt-3 text-[12px] text-ink-3">Windows 10 &amp; 11 · works offline · never deletes anything</p>
+            {picked ? (
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="w-14 flex-none"><Cover title={picked.title} url={picked.coverUrl} bare className="rounded-[6px]" /></div>
+                <div className="min-w-0">
+                  <h2 className="font-display truncate text-[clamp(30px,3vw,46px)] leading-[0.95]">{picked.title}</h2>
+                  <p className="typed mt-2 text-[12px] text-ink-3">
+                    {sourceName[picked.sources[0]]} · {bytes(picked.sizeBytes)} · last played {relative(picked.lastPlayed)}
+                    <button onClick={() => setPicked(null)} className="ml-3 cursor-pointer underline-offset-2 hover:text-ink hover:underline">close</button>
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <h2 className="font-display text-[clamp(34px,3.6vw,56px)] leading-[0.95]">{landed ? "On your shelf. Every one." : "Last stop."}</h2>
+                <p className="typed mt-3 text-[12px] text-ink-3">Windows 10 &amp; 11 · works offline · never deletes anything</p>
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href={github}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-14 items-center rounded-full border border-rule-strong px-6 text-[16px] font-medium text-ink-2 transition-colors hover:border-ink-3 hover:text-ink"
+              >
+                View the code
+              </a>
+              <a
+                href={download}
+                className="inline-flex h-14 items-center gap-2.5 rounded-full bg-accent px-7 text-[17px] font-medium text-accent-ink shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_8px_24px_-10px_rgb(0_0_0/0.5)] transition-[filter] hover:brightness-110"
+              >
+                <Download className="size-5" strokeWidth={2.2} /> Download for Windows
+              </a>
             </div>
-            <a
-              href={download}
-              className="inline-flex h-14 items-center gap-2.5 rounded-full bg-accent px-7 text-[17px] font-medium text-accent-ink shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_8px_24px_-10px_rgb(0_0_0/0.5)] transition-[filter] hover:brightness-110"
-            >
-              <Download className="size-5" strokeWidth={2.2} /> Download for Windows
-            </a>
           </div>
         </div>
       </section>
@@ -256,20 +306,29 @@ export function Journey({ games, faller, line, download }: { games: GameView[]; 
       {/* the book in transit */}
       {!landed && (
         <div ref={card} className="pointer-events-none absolute top-0 left-0 z-20 opacity-0 will-change-transform" style={{ width: 92 }}>
-          <div className="typed absolute -top-7 right-0 whitespace-nowrap rounded-full bg-u-yellow px-2.5 py-0.5 text-[11px] text-[#151413]" style={{ opacity: reached ? 0 : 1, transition: "opacity .3s" }}>
-            new · found in Downloads
+          {/* a NEW sticker on the corner; the soft yellow halo only while it's still on the shelf */}
+          <span className="caps absolute -top-2.5 -left-2.5 z-10 -rotate-6 rounded-[5px] bg-u-yellow px-1.5 py-0.5 text-[9.5px] font-semibold text-[#151413] shadow-[0_4px_10px_-4px_rgb(0_0_0/0.5)]">
+            New
+          </span>
+          <div className="rounded-[10px] transition-shadow duration-500" style={{ boxShadow: reached ? "none" : "0 0 0 3px var(--u-yellow), 0 0 28px 4px color-mix(in oklab, var(--u-yellow) 45%, transparent)" }}>
+            <Cover title={faller.title} url={faller.coverUrl} iconUrl={faller.iconUrl} meta={sourceName[faller.sources[0]]} className="rounded-[9px] shadow-[0_18px_40px_-12px_rgb(0_0_0/0.55)] ring-1 ring-black/10" />
           </div>
-          <Cover title={faller.title} url={faller.coverUrl} iconUrl={faller.iconUrl} meta={sourceName[faller.sources[0]]} className="rounded-[9px] shadow-[0_18px_40px_-12px_rgb(0_0_0/0.55)] ring-1 ring-black/10" />
         </div>
       )}
     </div>
   );
 }
 
-function Vignette({ i, on }: { i: number; on: boolean }) {
+function Vignette({ i, on, faller, games }: { i: number; on: boolean; faller: GameView; games: GameView[] }) {
   const V = VIGNETTES[i];
-  return <V on={on} />;
+  return <V on={on} faller={faller} games={games} />;
 }
+
+const ENDINGS = [
+  { name: "Fill the drive", hint: "Drag games out of your drive to free space", C: FillTheDrive },
+  { name: "Search your PC", hint: "Type a game and watch it come forward", C: SearchYourPC },
+  { name: "Arrange the shelf", hint: "Drag games around, or sort them", C: ArrangeTheShelf },
+];
 
 /** Index of the first sample at or below height y (samples are monotonic in y). */
 function lookup(ys: Float32Array, y: number): number {
