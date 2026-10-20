@@ -20,24 +20,60 @@ let current: ThemePref = "light";
 let listening = false;
 
 /**
- * Switch theme with a ripple: the new look spreads out in a circle from (x, y) — the button that was clicked — over
- * the old one. Falls back to an instant switch where View Transitions aren't supported or motion is reduced.
+ * Switch theme with a ripple: a disc of the new background colour grows out of (x, y) — the button that was clicked —
+ * until it covers the page; the theme flips underneath it, and the disc fades away to reveal the new look. Only a
+ * transform and an opacity animate, so it stays smooth even on this heavy page (a full-page View Transition has to
+ * screenshot everything first, which is what made it lag).
  */
+let ripple: { disc: HTMLElement; grow: Animation } | null = null;
+
 export function switchSiteTheme(pref: ThemePref, x: number, y: number) {
-  const doc = document as Document & { startViewTransition?: (cb: () => void) => { ready: Promise<void> } };
+  // A second click mid-ripple: drop the unfinished one (its flip never happens) and start from what's on screen.
+  if (ripple) {
+    ripple.grow.cancel();
+    ripple.disc.remove();
+    ripple = null;
+  }
   const from = document.documentElement.dataset.theme;
   const to = pref === "system" ? (media().matches ? "dark" : "light") : pref;
-  if (!doc.startViewTransition || from === to || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (from === to || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     applySiteTheme(pref);
     return;
   }
   const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-  doc.startViewTransition(() => applySiteTheme(pref)).ready.then(() => {
-    document.documentElement.animate(
-      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
-      { duration: 700, easing: "cubic-bezier(.4,0,.2,1)", pseudoElement: "::view-transition-new(root)" },
-    );
+  // A small disc scaled up, rather than a page-sized one: the GPU only ever holds a 120px texture.
+  const D = 120, end = (2 * r) / D + 0.05;
+  const disc = document.createElement("div");
+  disc.setAttribute("aria-hidden", "true");
+  Object.assign(disc.style, {
+    position: "fixed",
+    left: `${x - D / 2}px`,
+    top: `${y - D / 2}px`,
+    width: `${D}px`,
+    height: `${D}px`,
+    borderRadius: "50%",
+    background: to === "dark" ? "#0e0f13" : "#f6f4ef",
+    pointerEvents: "none",
+    zIndex: "9999",
+    transform: "scale(0)",
+    willChange: "transform, opacity",
   });
+  document.body.appendChild(disc);
+  const grow = disc.animate([{ transform: "scale(0)" }, { transform: `scale(${end})` }], { duration: 480, easing: "cubic-bezier(.5,0,.2,1)", fill: "forwards" });
+  ripple = { disc, grow };
+  grow.onfinish = () => {
+    ripple = null;
+    // Flip with transitions off, so hundreds of colour transitions don't all start at once.
+    const root = document.documentElement;
+    root.classList.add("theme-flipping");
+    applySiteTheme(pref);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        root.classList.remove("theme-flipping");
+        disc.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: "ease-out", fill: "forwards" }).onfinish = () => disc.remove();
+      }),
+    );
+  };
 }
 
 export function applySiteTheme(pref: ThemePref) {

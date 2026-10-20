@@ -36,24 +36,25 @@ function Roll({ k, children }: { k: number; children: ReactNode }) {
   // The box glides to the new text's width (instead of jumping), with the edge softly faded while it moves.
   const latest = useRef<HTMLSpanElement>(null);
   const [width, setWidth] = useState<number | null>(null);
-  const [moving, setMoving] = useState(false);
+  const [shrinking, setShrinking] = useState(false);
   useLayoutEffect(() => {
     const w = latest.current?.scrollWidth;
     if (!w) return;
     setWidth((old) => {
-      if (old !== null && Math.abs(old - w) > 1) setMoving(true);
+      if (old !== null && w < old - 1) setShrinking(true);
       return w;
     });
   }, [k]);
   return (
     <span
       className="relative inline-grid overflow-hidden align-middle"
-      onTransitionEnd={(e) => e.propertyName === "width" && setMoving(false)}
+      onTransitionEnd={(e) => e.propertyName === "width" && setShrinking(false)}
       style={{
         width: width ?? undefined,
-        transition: "width .7s cubic-bezier(.65,0,.35,1)",
-        maskImage: moving ? "linear-gradient(90deg, black calc(100% - 28px), transparent)" : undefined,
-        WebkitMaskImage: moving ? "linear-gradient(90deg, black calc(100% - 28px), transparent)" : undefined,
+        transition: "width .6s cubic-bezier(.22,1,.36,1)",
+        // While shrinking, the outgoing text fades off at the edge instead of being cut.
+        maskImage: shrinking ? "linear-gradient(90deg, black calc(100% - 36px), transparent)" : undefined,
+        WebkitMaskImage: shrinking ? "linear-gradient(90deg, black calc(100% - 36px), transparent)" : undefined,
       }}
     >
       {items.map((it, i) => {
@@ -77,7 +78,8 @@ export function StatusBar({ games }: { games: GameView[] }) {
   const doingTick = useBeat(7000, 3500); // left chip
   const findTick = useBeat(7000, 7000); // right chip, half a beat later
 
-  const found = Math.min(games.length, games.length - 4 + findTick);
+  // The count belongs to the left chip and changes with it, so each chip changes as one piece, at its own time.
+  const found = Math.min(games.length, games.length - 4 + doingTick);
   const total = games.slice(0, found).reduce((a, g) => a + g.sizeBytes, 0);
   const latest = games[1 + (findTick % (games.length - 1))];
   const findWhere = `${"DEF"[findTick % 3]}:\\${PLACES[findTick % PLACES.length]}`;
@@ -93,13 +95,15 @@ export function StatusBar({ games }: { games: GameView[] }) {
   ][phase];
   const dot = ["bg-ok", "bg-u-blue", "bg-u-red", "bg-u-yellow"][phase];
 
-  const chip = "inline-flex h-9 items-center gap-2 rounded-full border border-rule-strong bg-surface px-3.5 text-ink-2 shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-[width]";
+  const chip = "inline-flex h-9 items-center gap-2 rounded-full border border-rule-strong bg-surface px-3.5 text-ink-2 shadow-[0_1px_2px_rgb(0_0_0/0.04)]";
   return (
     <div className="mb-9 flex flex-wrap items-center gap-2.5 text-[13px]" aria-hidden>
       <span className={chip}>
-        <span className={`pulse-dot size-2 flex-none rounded-full transition-colors duration-500 ${dot}`} />
-        <Roll k={doingTick}>{doing}</Roll>
-        <span className="typed text-[11.5px] whitespace-nowrap text-ink-3 tabular-nums">· {found} games · {bytes(total)}</span>
+        <span key={phase} className={`site-dot pulse-dot size-2 flex-none rounded-full ${dot}`} />
+        <Roll k={doingTick}>
+          <span>{doing}</span>
+          <span className="typed text-[11.5px] text-ink-3 tabular-nums">· {found} games · {bytes(total)}</span>
+        </Roll>
       </span>
       <span className={`${chip} min-w-0 py-1 pl-1.5 max-sm:hidden`}>
         <Roll k={findTick}>

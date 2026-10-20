@@ -101,18 +101,29 @@
   }
 }
 .site-roll-out {
-  animation: site-roll-out 0.55s cubic-bezier(0.6, 0, 0.8, 0.4) forwards;
+  animation: site-roll-out 0.4s cubic-bezier(0.55, 0, 0.75, 0.3) forwards;
 }
 .site-roll-in {
-  animation: site-roll-in 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) 0.12s both;
+  animation: site-roll-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+/* The status dot pops into its new colour. */
+@keyframes site-dot {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.35);
+  }
+}
+.site-dot {
+  animation:
+    site-dot 0.5s cubic-bezier(0.22, 1, 0.36, 1) both,
+    pulse-dot 1.6s ease-in-out 0.5s infinite;
 }
 
-/* Theme ripple: the new page is revealed by a growing circle (see switchSiteTheme), so skip the default cross-fade. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-::view-transition-new(root) {
-  z-index: 2;
+/* While the theme flips under the ripple, nothing transitions (see switchSiteTheme). */
+.theme-flipping,
+.theme-flipping * {
+  transition: none !important;
 }
