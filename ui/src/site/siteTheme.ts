@@ -1,4 +1,5 @@
 import type { ThemePref } from "../bridge/protocol";
+import { paletteById } from "../lib/palettes";
 
 // The website's own day/night choice. Everyone starts on Light; picking Dark or System is remembered in this browser.
 // (Kept apart from the app's theme setting, which the app's preview shares, so the two never mix.)
@@ -20,26 +21,56 @@ let current: ThemePref = "light";
 let listening = false;
 
 /**
- * Switch theme with a ripple behind the page: everything in front (text, cards, covers) takes the new theme at once,
- * while the background colour spreads out in a circle from (x, y) — the button that was clicked. Only the backdrop
- * ripples; nothing in front is ever covered. The circle is a small disc scaled up (just a transform on a 120px layer),
- * so it stays smooth on this heavy page.
+ * Switch theme with a ripple from (x, y) — the button that was clicked. The background spreads out in a circle (a small
+ * disc scaled up behind the page, so it's just a cheap transform), and everything in front changes at the moment the
+ * wave reaches it: until then each element is held on the old theme (its colour variables pinned with a data-hold
+ * attribute), and it's let go as the circle passes its middle. Nothing switches ahead of the wave, and nothing is
+ * covered.
  */
-let ripple: { disc: HTMLElement; grow: Animation } | null = null;
+let ripple: { disc: HTMLElement; grow: Animation; held: Element[]; raf: number } | null = null;
 
 const BG = { light: "#f6f4ef", dark: "#0e0f13" } as const;
+const DURATION = 650;
+const EASE = [0.45, 0, 0.2, 1] as const;
 
-function endRipple() {
+/** Time (0–1) at which the eased ripple reaches progress p (0–1): the inverse of the cubic-bezier easing. */
+function timeAt(p: number): number {
+  const [x1, y1, x2, y2] = EASE;
+  const bez = (t: number, a: number, b: number) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 24; i++) {
+    const t = (lo + hi) / 2;
+    if (bez(t, y1, y2) < p) lo = t;
+    else hi = t;
+  }
+  return bez((lo + hi) / 2, x1, x2);
+}
+
+/** CSS that pins an element (and what's inside it) to one theme's colours: [data-hold=light] / [data-hold=dark]. */
+function installHoldRules() {
+  if (document.getElementById("site-hold")) return;
+  const p = paletteById("sunset");
+  const block = (mode: "light" | "dark") =>
+    `[data-hold="${mode}"]{${Object.entries(mode === "dark" ? p.dark : p.light).map(([k, v]) => `--${k}:${v};`).join("")}color-scheme:${mode};}`;
+  const style = document.createElement("style");
+  style.id = "site-hold";
+  style.textContent = block("light") + block("dark");
+  document.head.appendChild(style);
+}
+
+function clearRipple() {
   if (!ripple) return;
   ripple.grow.cancel();
   ripple.disc.remove();
+  cancelAnimationFrame(ripple.raf);
+  for (const el of ripple.held) el.removeAttribute("data-hold");
   ripple = null;
   document.body.style.background = "";
   document.documentElement.classList.remove("theme-rippling");
 }
 
 export function switchSiteTheme(pref: ThemePref, x: number, y: number) {
-  endRipple(); // a second click mid-ripple starts fresh from what's on screen
+  clearRipple(); // a second click mid-ripple starts fresh from what's on screen
   const root = document.documentElement;
   const from = root.dataset.theme === "dark" ? "dark" : "light";
   const to = pref === "system" ? (media().matches ? "dark" : "light") : pref;
@@ -47,13 +78,34 @@ export function switchSiteTheme(pref: ThemePref, x: number, y: number) {
     applySiteTheme(pref);
     return;
   }
-  // Hold the old background behind the page, then flip the theme (transitions off, so nothing animates colour).
-  document.body.style.background = BG[from];
-  root.classList.add("theme-flipping", "theme-rippling");
-  applySiteTheme(pref);
-  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-flipping")));
-
+  installHoldRules();
   const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+
+  // Everything on screen is held on the old theme until the wave reaches its nearest edge. (Measure first, then write.)
+  const els = [...document.querySelectorAll("#root *")];
+  const due = els.map((el) => {
+    const b = el.getBoundingClientRect();
+    if (b.bottom < 0 || b.top > innerHeight || b.width === 0) return -1;
+    // Things on the page switch as the wave passes their middle; big containers (sections, wrappers) as soon as it
+    // touches them, so they never hold back what's inside.
+    const big = b.width > innerWidth * 0.6 || b.height > innerHeight * 0.6;
+    const px = big ? Math.max(b.left, Math.min(x, b.right)) : b.left + b.width / 2;
+    const py = big ? Math.max(b.top, Math.min(y, b.bottom)) : b.top + b.height / 2;
+    return timeAt(Math.min(1, Math.hypot(px - x, py - y) / r)) * DURATION;
+  });
+  const queue: [number, Element][] = [];
+  els.forEach((el, i) => {
+    if (due[i] > 16) { // reached in the first frame anyway
+      el.setAttribute("data-hold", from);
+      queue.push([due[i], el]);
+    }
+  });
+  queue.sort((a, b) => a[0] - b[0]);
+
+  document.body.style.background = BG[from]; // the old backdrop, until the disc has covered it
+  root.classList.add("theme-rippling");
+  applySiteTheme(pref);
+
   const D = 120, end = (2 * r) / D + 0.05;
   const disc = document.createElement("div");
   disc.setAttribute("aria-hidden", "true");
@@ -71,14 +123,30 @@ export function switchSiteTheme(pref: ThemePref, x: number, y: number) {
     willChange: "transform",
   });
   document.body.prepend(disc);
-  const grow = disc.animate([{ transform: "scale(0)" }, { transform: `scale(${end})` }], { duration: 650, easing: "cubic-bezier(.45,0,.2,1)", fill: "forwards" });
-  ripple = { disc, grow };
+  const grow = disc.animate([{ transform: "scale(0)" }, { transform: `scale(${end})` }], {
+    duration: DURATION,
+    easing: `cubic-bezier(${EASE.join(",")})`,
+    fill: "forwards",
+  });
+
+  // Let elements go as the wave passes them.
+  const start = performance.now();
+  let next = 0;
+  const step = () => {
+    const t = performance.now() - start;
+    while (next < queue.length && queue[next][0] <= t) queue[next++][1].removeAttribute("data-hold");
+    if (ripple && next < queue.length) ripple.raf = requestAnimationFrame(step);
+  };
+  ripple = { disc, grow, held: queue.map((q) => q[1]), raf: requestAnimationFrame(step) };
   grow.onfinish = () => {
-    // The disc now covers the whole backdrop in the new colour; hand over to the real background.
+    for (const [, el] of queue) el.removeAttribute("data-hold");
     document.body.style.background = "";
     root.classList.remove("theme-rippling");
     disc.remove();
-    ripple = null;
+    if (ripple?.disc === disc) {
+      cancelAnimationFrame(ripple.raf);
+      ripple = null;
+    }
   };
 }
 
