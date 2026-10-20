@@ -17,8 +17,8 @@ function Card({ label, aside, children, on }: { label: string; aside?: ReactNode
       style={{ transform: on ? undefined : "translateY(6px)", boxShadow: on ? "0 1px 2px rgb(0 0 0/.06), 0 24px 48px -24px rgb(0 0 0/.35)" : undefined }}
     >
       <div className="flex min-h-[41px] items-center justify-between gap-3 border-b border-rule px-4 py-2">
-        <span className="caps text-ink-3">{label}</span>
-        {aside && <span className="typed text-[11px] text-ink-4">{aside}</span>}
+        <span className="caps whitespace-nowrap text-ink-3">{label}</span>
+        {aside && <span className="typed min-w-0 truncate text-[11px] text-ink-4">{aside}</span>}
       </div>
       {children}
     </div>

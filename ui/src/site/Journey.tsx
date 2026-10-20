@@ -201,7 +201,7 @@ export function Journey({ games, faller, line, download, github }: { games: Game
           </div>
           <div className="lg:mt-6">
             <Row games={others.slice(6, 11)} lean={1}>
-              <div ref={home} className="invisible w-[70px] flex-none lg:w-[92px]" style={{ aspectRatio: "2 / 3" }} />
+              <div ref={home} className="invisible w-[54px] flex-none sm:w-[70px] lg:w-[92px]" style={{ aspectRatio: "2 / 3" }} />
             </Row>
             <Plank />
           </div>
@@ -220,7 +220,7 @@ export function Journey({ games, faller, line, download, github }: { games: Game
             <Numeral n={i + 1} side={s.side} />
             <Drift games={others} seed={i} side={s.side} />
             <div
-              className={`relative z-10 max-w-[460px] max-lg:pr-[24%] ${s.side === "right" ? "lg:mr-auto lg:ml-[4%]" : "lg:mr-[6%] lg:ml-auto"}`}
+              className={`relative z-10 w-full min-w-0 max-w-[460px] max-lg:pr-[17%] ${s.side === "right" ? "lg:mr-auto lg:ml-[4%]" : "lg:mr-[6%] lg:ml-auto"}`}
             >
               <div className="typed text-[12px] text-ink-3">{String(i + 1).padStart(2, "0")} / {String(STOPS.length).padStart(2, "0")}</div>
               <h2 className="font-display mt-2 text-[clamp(38px,4.4vw,70px)] leading-[0.95] text-balance">{s.title}</h2>
@@ -243,10 +243,10 @@ export function Journey({ games, faller, line, download, github }: { games: Game
       <Numbers />
 
       {/* the end of the path: a small interactive Shelf with a spot held open, and the download, in one box */}
-      <section className="relative px-2 pt-[8svh] pb-[22svh] sm:px-5">
+      <section className="relative px-2 pt-[8svh] pb-10 sm:px-5 sm:pb-[22svh]">
         <div className="mx-auto max-w-[1320px] overflow-hidden rounded-[28px] bg-surface shadow-[0_2px_4px_rgb(0_0_0/0.04),0_40px_80px_-40px_rgb(0_0_0/0.45)] ring-1 ring-rule-strong">
           {/* three endings to try; the book lands in the first, and the tabs unlock once it has */}
-          <div className="flex flex-wrap items-center justify-center gap-1 border-b border-rule bg-surface px-3 py-2.5" role="tablist">
+          <div className="flex items-center justify-center gap-0.5 border-b border-rule bg-surface px-2 py-2.5 sm:gap-1 sm:px-3" role="tablist">
             {ENDINGS.map((e, i) => (
               <button
                 key={e.name}
@@ -255,7 +255,7 @@ export function Journey({ games, faller, line, download, github }: { games: Game
                 disabled={!landed}
                 onClick={() => setEnding(i)}
                 title={landed ? e.hint : "Scroll on — the new game lands here first"}
-                className={`cursor-pointer rounded-full px-4 py-1.5 text-[13.5px] transition-colors disabled:cursor-default ${ending === i ? "bg-ink text-bg" : "text-ink-2 hover:bg-sunken disabled:opacity-40 disabled:hover:bg-transparent"}`}
+                className={`cursor-pointer rounded-full px-3 py-1.5 text-[12.5px] whitespace-nowrap transition-colors sm:px-4 sm:text-[13.5px] disabled:cursor-default ${ending === i ? "bg-ink text-bg" : "text-ink-2 hover:bg-sunken disabled:opacity-40 disabled:hover:bg-transparent"}`}
               >
                 {e.name}
               </button>

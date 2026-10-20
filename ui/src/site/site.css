@@ -62,8 +62,8 @@
 
 /* Where the path's X marks sit across the page: near the right edge on phones (text takes the left), wider on desktop. */
 .journey {
-  --x-right: 86%;
-  --x-left: 72%;
+  --x-right: 92%;
+  --x-left: 92%;
   /* faint map-paper dots, so the path has ground to run over */
   background-image: radial-gradient(color-mix(in oklab, var(--ink) 9%, transparent) 1px, transparent 1.2px);
   background-size: 26px 26px;

@@ -102,7 +102,7 @@ export function StatusBar({ games }: { games: GameView[] }) {
         <span key={phase} className={`site-dot pulse-dot size-2 flex-none rounded-full ${dot}`} />
         <Roll k={doingTick}>
           <span>{doing}</span>
-          <span className="typed text-[11.5px] text-ink-3 tabular-nums">· {found} games · {bytes(total)}</span>
+          <span className="typed text-[11.5px] text-ink-3 tabular-nums max-sm:hidden">· {found} games · {bytes(total)}</span>
         </Roll>
       </span>
       <span className={`${chip} min-w-0 py-1 pl-1.5 max-sm:hidden`}>

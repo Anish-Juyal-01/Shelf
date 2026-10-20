@@ -10,7 +10,8 @@ import { ago, installPath, type EndingProps } from "./shared";
 // under it with where each one lives, its size and when you last played. That's what Shelf is for: finding the game
 // you forgot you had.
 
-const MAX = 6;
+/** How many results fit in a row, and how wide each slot is (% of the box): fewer, wider ones on a phone. */
+const layout = () => (window.innerWidth < 640 ? { max: 3, slot: 31 } : { max: 6, slot: 13.5 });
 
 type Filter = { label: string; test(g: GameView): boolean };
 const FILTERS: Filter[] = [
@@ -54,11 +55,12 @@ export function SearchYourPC({ games, faller, landed, slotRef, onOpen }: EndingP
   const matches = searching
     ? list.filter((g) => (nq === "" || normalize(g.title).includes(nq)) && (filter === null || FILTERS[filter].test(g)))
     : [];
+  const { max: MAX, slot } = layout();
   const shown = matches.slice(0, MAX);
   const pos = (g: GameView) => {
     const r = shown.indexOf(g);
     if (r >= 0) {
-      const n = shown.length, w = 13.5; // % per result slot
+      const n = shown.length, w = slot;
       return { x: 50 + (r - (n - 1) / 2) * w, y: 66, tilt: 0, big: true };
     }
     const s = spot(all.indexOf(g), all.length);
@@ -135,7 +137,7 @@ export function SearchYourPC({ games, faller, landed, slotRef, onOpen }: EndingP
       {shown.map((g, r) => {
         const n = shown.length;
         return (
-          <div key={g.id} className="absolute z-10 w-[12.5%] -translate-x-1/2 text-center" style={{ left: `${50 + (r - (n - 1) / 2) * 13.5}%`, top: "calc(66% + 82px)" }}>
+          <div key={g.id} className="absolute z-10 -translate-x-1/2 text-center" style={{ width: `${slot - 1}%`, left: `${50 + (r - (n - 1) / 2) * slot}%`, top: "calc(66% + 82px)" }}>
             <div className="truncate text-[12.5px] font-medium text-ink">{g.title}</div>
             <div className="typed truncate text-[10.5px] text-ink-3">{sourceName[g.sources[0]]} · {bytes(g.sizeBytes)}</div>
             <div className={`typed truncate text-[10.5px] ${isOverdue(g) ? "text-u-red" : "text-ink-3"}`}>{ago(g.lastPlayed)}</div>

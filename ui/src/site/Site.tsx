@@ -71,10 +71,10 @@ export function Site() {
 function Nav() {
   return (
     <header className="site-nav sticky top-0 z-30 bg-bg/85 backdrop-blur-md">
-      <div className="mx-auto flex h-[72px] max-w-[1480px] items-center gap-3 px-4 sm:px-8 lg:px-14">
-        <a href="#" className="flex items-center gap-2.5" aria-label="Shelf">
-          <img src="./icon.svg" alt="" className="size-10" />
-          <span className="font-display text-[40px] leading-none">
+      <div className="mx-auto flex h-[60px] max-w-[1480px] items-center gap-1.5 px-4 sm:h-[72px] sm:gap-3 sm:px-8 lg:px-14">
+        <a href="#" className="flex flex-none items-center gap-2 sm:gap-2.5" aria-label="Shelf">
+          <img src="./icon.svg" alt="" className="size-8 sm:size-10" />
+          <span className="font-display text-[30px] leading-none sm:text-[40px]">
             Shelf<span className="text-u-red">.</span>
           </span>
         </a>
@@ -85,19 +85,18 @@ function Nav() {
           target="_blank"
           rel="noreferrer"
           aria-label="GitHub"
-          className="inline-flex h-10 items-center gap-2 rounded-full px-3 text-[14.5px] font-medium text-ink-2 transition-colors hover:bg-sunken hover:text-ink"
+          className="inline-flex h-10 flex-none items-center gap-2 rounded-full px-2.5 text-[14.5px] font-medium text-ink-2 transition-colors hover:bg-sunken hover:text-ink sm:px-3"
         >
           <GitHubMark />
           <span className="max-sm:hidden">GitHub</span>
         </a>
         <a
           href={DOWNLOAD_URL}
-          className="inline-flex h-10 items-center gap-2 rounded-full bg-accent px-4 text-[14.5px] font-medium text-accent-ink shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_8px_24px_-10px_rgb(0_0_0/0.5)] transition-[filter] hover:brightness-110 sm:px-5"
+          aria-label="Download for Windows"
+          className="inline-flex size-10 flex-none items-center justify-center gap-2 rounded-full bg-accent text-[14.5px] sm:w-auto sm:px-5 font-medium text-accent-ink shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_8px_24px_-10px_rgb(0_0_0/0.5)] transition-[filter] hover:brightness-110"
         >
           <Download className="size-4" strokeWidth={2.2} />
-          <span>
-            Download<span className="max-sm:hidden"> for Windows</span>
-          </span>
+          <span className="max-sm:hidden">Download for Windows</span>
         </a>
       </div>
     </header>
@@ -113,7 +112,7 @@ function ThemeSwitch() {
     { v: "system", label: "System", Icon: Monitor },
   ];
   return (
-    <div role="radiogroup" aria-label="Theme" className="mr-1 inline-flex items-center rounded-full border border-rule-strong bg-surface p-0.5">
+    <div role="radiogroup" aria-label="Theme" className="inline-flex flex-none items-center rounded-full border border-rule-strong bg-surface p-0.5 sm:mr-1">
       {opts.map(({ v, label, Icon }) => (
         <button
           key={v}
@@ -126,7 +125,7 @@ function ThemeSwitch() {
             setPref(v);
             switchSiteTheme(v, b.left + b.width / 2, b.top + b.height / 2);
           }}
-          className={`inline-flex size-8 cursor-pointer items-center justify-center rounded-full transition-colors ${pref === v ? "bg-ink text-bg" : "text-ink-3 hover:text-ink"}`}
+          className={`inline-flex size-7 cursor-pointer items-center sm:size-8 justify-center rounded-full transition-colors ${pref === v ? "bg-ink text-bg" : "text-ink-3 hover:text-ink"}`}
         >
           <Icon className="size-4" />
         </button>

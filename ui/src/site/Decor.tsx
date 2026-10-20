@@ -10,7 +10,7 @@ export function CoverStrip({ games }: { games: GameView[] }) {
   const rows = [games.filter((_, i) => i % 2 === 0), games.filter((_, i) => i % 2 === 1)];
   return (
     <section className="relative py-10" aria-label="Some of the games Shelf finds">
-      <p className="caps mb-6 text-center text-ink-3">Reads 12 launchers — and any folder you point it at</p>
+      <p className="caps mb-6 px-4 text-center text-ink-3">Reads 12 launchers<span className="max-sm:hidden"> — and any folder you point it at</span></p>
       <div className="group space-y-4 [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]">
         {rows.map((row, r) => (
           <div key={r} className="flex w-max gap-4 group-hover:[animation-play-state:paused]" style={{ animation: `site-strip ${70 + r * 12}s linear infinite`, animationDirection: r ? "reverse" : "normal" }}>
