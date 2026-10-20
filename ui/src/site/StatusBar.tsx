@@ -105,14 +105,14 @@ export function StatusBar({ games }: { games: GameView[] }) {
           <span className="typed text-[11.5px] text-ink-3 tabular-nums max-sm:hidden">· {found} games · {bytes(total)}</span>
         </Roll>
       </span>
-      <span className={`${chip} min-w-0 py-1 pl-1.5 max-sm:hidden`}>
+      <span className={`${chip} max-w-full min-w-0 overflow-hidden py-1 pl-1.5`}>
         <Roll k={findTick}>
           <span className="w-[18px] flex-none overflow-hidden rounded-[3px]">
             <Cover title={latest.title} url={latest.coverUrl} bare />
           </span>
           <span>
             found <b className="font-medium text-ink">{latest.title}</b>
-            <span className="typed text-[11.5px] text-ink-3"> · {findWhere}</span>
+            <span className="typed text-[11.5px] text-ink-3 max-sm:hidden"> · {findWhere}</span>
           </span>
         </Roll>
       </span>

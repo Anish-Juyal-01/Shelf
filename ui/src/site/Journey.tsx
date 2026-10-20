@@ -201,7 +201,7 @@ export function Journey({ games, faller, line, download, github }: { games: Game
           </div>
           <div className="lg:mt-6">
             <Row games={others.slice(6, 11)} lean={1}>
-              <div ref={home} className="invisible w-[54px] flex-none sm:w-[70px] lg:w-[92px]" style={{ aspectRatio: "2 / 3" }} />
+              <div ref={home} className="invisible w-[50px] flex-none sm:w-[70px] lg:w-[92px]" style={{ aspectRatio: "2 / 3" }} />
             </Row>
             <Plank />
           </div>
@@ -368,11 +368,11 @@ function Cross({ done }: { done: boolean }) {
 /** One shelf's worth of games standing side by side; one leans on its neighbour. */
 function Row({ games, lean, children }: { games: GameView[]; lean: number; children?: ReactNode }) {
   return (
-    <div className="flex items-end justify-end gap-[7px] px-3">
+    <div className="flex items-end justify-end gap-[5px] px-1 sm:gap-[7px] sm:px-3">
       {games.map((g, i) => (
         <div
           key={g.id}
-          className={`w-[52px] origin-bottom-left lg:w-[84px] ${i < games.length - 4 ? "max-sm:hidden" : ""}`}
+          className={`w-[46px] origin-bottom-left sm:w-[52px] lg:w-[84px] ${i < games.length - 5 ? "max-sm:hidden" : ""}`}
           style={{ transform: i === lean ? "rotate(-7deg) translateX(6px)" : undefined, zIndex: i === lean ? 0 : 1 }}
         >
           <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} bare className="rounded-[7px] ring-1 ring-black/10" />
