@@ -7,8 +7,8 @@ import { StatusBar } from "./StatusBar";
 // The Shelf website: a line that writes itself next to a bookcase, then one journey down the page (see Journey.tsx)
 // that ends with the newest game landing in the wheel.
 
-/** Where the Download buttons point. Set this once there's a build to host. */
-const DOWNLOAD_URL = "#download";
+/** The newest release's app zip (the asset keeps the same name in every release, so this link never goes stale). */
+const DOWNLOAD_URL = "https://github.com/Anish-Juyal-01/Shelf/releases/latest/download/Shelf-win-x64.zip";
 const PROFILE_URL = "https://github.com/Anish-Juyal-01";
 const REPO_URL = "https://github.com/Anish-Juyal-01/Shelf";
 
@@ -49,7 +49,8 @@ export function Site() {
           <div className="space-y-2">
             <p className="caps text-ink-4">Project</p>
             <a className="block hover:text-ink" href={REPO_URL} target="_blank" rel="noreferrer">Source on GitHub</a>
-            <a className="block hover:text-ink" href={`${REPO_URL}#readme`} target="_blank" rel="noreferrer">How to install</a>
+            <a className="block hover:text-ink" href={`${REPO_URL}#install`} target="_blank" rel="noreferrer">How to install</a>
+            <a className="block hover:text-ink" href={`${REPO_URL}/releases/latest`} target="_blank" rel="noreferrer">Release notes</a>
             <a className="block hover:text-ink" href={`${REPO_URL}/blob/main/LICENSE`} target="_blank" rel="noreferrer">MIT license</a>
           </div>
           <div className="space-y-2">
