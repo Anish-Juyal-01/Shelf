@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { GameView } from "../bridge/protocol";
 import { Cover } from "../components/Cover";
 import { bytes } from "../lib/format";
@@ -33,14 +33,36 @@ function useBeat(every: number, delay: number) {
 function Roll({ k, children }: { k: number; children: ReactNode }) {
   const [items, setItems] = useState([{ k, node: children }]);
   if (items[items.length - 1].k !== k) setItems((it) => [...it.slice(-1), { k, node: children }]);
+  // The box glides to the new text's width (instead of jumping), with the edge softly faded while it moves.
+  const latest = useRef<HTMLSpanElement>(null);
+  const [width, setWidth] = useState<number | null>(null);
+  const [moving, setMoving] = useState(false);
+  useLayoutEffect(() => {
+    const w = latest.current?.scrollWidth;
+    if (!w) return;
+    setWidth((old) => {
+      if (old !== null && Math.abs(old - w) > 1) setMoving(true);
+      return w;
+    });
+  }, [k]);
   return (
-    <span className="relative inline-grid overflow-hidden align-middle">
+    <span
+      className="relative inline-grid overflow-hidden align-middle"
+      onTransitionEnd={(e) => e.propertyName === "width" && setMoving(false)}
+      style={{
+        width: width ?? undefined,
+        transition: "width .7s cubic-bezier(.65,0,.35,1)",
+        maskImage: moving ? "linear-gradient(90deg, black calc(100% - 28px), transparent)" : undefined,
+        WebkitMaskImage: moving ? "linear-gradient(90deg, black calc(100% - 28px), transparent)" : undefined,
+      }}
+    >
       {items.map((it, i) => {
         const leaving = i < items.length - 1;
         return (
           <span
             key={it.k}
-            className={`col-start-1 row-start-1 inline-flex items-center gap-2 whitespace-nowrap ${leaving ? "site-roll-out" : items.length > 1 ? "site-roll-in" : ""}`}
+            ref={leaving ? undefined : latest}
+            className={`col-start-1 row-start-1 inline-flex w-max items-center gap-2 justify-self-start whitespace-nowrap ${leaving ? "site-roll-out" : items.length > 1 ? "site-roll-in" : ""}`}
             onAnimationEnd={leaving ? () => setItems((x) => x.filter((y) => y.k !== it.k)) : undefined}
           >
             {it.node}

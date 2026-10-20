@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { randomGames } from "./siteGames";
 import { Journey } from "./Journey";
 import { StatusBar } from "./StatusBar";
-import { applySiteTheme, savedSiteTheme } from "./siteTheme";
+import { savedSiteTheme, switchSiteTheme } from "./siteTheme";
 
 // The Shelf website: a line that writes itself next to a bookcase, then one journey down the page (see Journey.tsx)
 // that ends with the newest game landing in the wheel.
@@ -121,9 +121,10 @@ function ThemeSwitch() {
           aria-checked={pref === v}
           aria-label={label}
           title={label}
-          onClick={() => {
+          onClick={(e) => {
+            const b = e.currentTarget.getBoundingClientRect();
             setPref(v);
-            applySiteTheme(v);
+            switchSiteTheme(v, b.left + b.width / 2, b.top + b.height / 2);
           }}
           className={`inline-flex size-8 cursor-pointer items-center justify-center rounded-full transition-colors ${pref === v ? "bg-ink text-bg" : "text-ink-3 hover:text-ink"}`}
         >

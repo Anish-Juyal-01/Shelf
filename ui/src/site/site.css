@@ -106,3 +106,13 @@
 .site-roll-in {
   animation: site-roll-in 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) 0.12s both;
 }
+
+/* Theme ripple: the new page is revealed by a growing circle (see switchSiteTheme), so skip the default cross-fade. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}

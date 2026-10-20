@@ -19,6 +19,27 @@ export function savedSiteTheme(): ThemePref {
 let current: ThemePref = "light";
 let listening = false;
 
+/**
+ * Switch theme with a ripple: the new look spreads out in a circle from (x, y) — the button that was clicked — over
+ * the old one. Falls back to an instant switch where View Transitions aren't supported or motion is reduced.
+ */
+export function switchSiteTheme(pref: ThemePref, x: number, y: number) {
+  const doc = document as Document & { startViewTransition?: (cb: () => void) => { ready: Promise<void> } };
+  const from = document.documentElement.dataset.theme;
+  const to = pref === "system" ? (media().matches ? "dark" : "light") : pref;
+  if (!doc.startViewTransition || from === to || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    applySiteTheme(pref);
+    return;
+  }
+  const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  doc.startViewTransition(() => applySiteTheme(pref)).ready.then(() => {
+    document.documentElement.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+      { duration: 700, easing: "cubic-bezier(.4,0,.2,1)", pseudoElement: "::view-transition-new(root)" },
+    );
+  });
+}
+
 export function applySiteTheme(pref: ThemePref) {
   current = pref;
   const root = document.documentElement;
