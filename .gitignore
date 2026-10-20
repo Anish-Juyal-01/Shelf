@@ -10,3 +10,4 @@ artifacts/
 .claude/
 ui/public/dev-icons/
 ui/dist-site/
+.vercel/

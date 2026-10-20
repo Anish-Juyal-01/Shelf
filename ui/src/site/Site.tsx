@@ -1,8 +1,10 @@
-import { Download } from "lucide-react";
+import { Download, Monitor, Moon, Sun } from "lucide-react";
+import type { ThemePref } from "../bridge/protocol";
 import { useEffect, useMemo, useState } from "react";
 import { randomGames } from "./siteGames";
 import { Journey } from "./Journey";
 import { StatusBar } from "./StatusBar";
+import { applySiteTheme, savedSiteTheme } from "./siteTheme";
 
 // The Shelf website: a line that writes itself next to a bookcase, then one journey down the page (see Journey.tsx)
 // that ends with the newest game landing in the wheel.
@@ -77,6 +79,7 @@ function Nav() {
           </span>
         </a>
         <span className="flex-1" />
+        <ThemeSwitch />
         <a
           href={PROFILE_URL}
           target="_blank"
@@ -98,6 +101,36 @@ function Nav() {
         </a>
       </div>
     </header>
+  );
+}
+
+/** Light / Dark / System. Light for everyone until they pick otherwise. */
+function ThemeSwitch() {
+  const [pref, setPref] = useState<ThemePref>(savedSiteTheme);
+  const opts: { v: ThemePref; label: string; Icon: typeof Sun }[] = [
+    { v: "light", label: "Light", Icon: Sun },
+    { v: "dark", label: "Dark", Icon: Moon },
+    { v: "system", label: "System", Icon: Monitor },
+  ];
+  return (
+    <div role="radiogroup" aria-label="Theme" className="mr-1 inline-flex items-center rounded-full border border-rule-strong bg-surface p-0.5">
+      {opts.map(({ v, label, Icon }) => (
+        <button
+          key={v}
+          role="radio"
+          aria-checked={pref === v}
+          aria-label={label}
+          title={label}
+          onClick={() => {
+            setPref(v);
+            applySiteTheme(v);
+          }}
+          className={`inline-flex size-8 cursor-pointer items-center justify-center rounded-full transition-colors ${pref === v ? "bg-ink text-bg" : "text-ink-3 hover:text-ink"}`}
+        >
+          <Icon className="size-4" />
+        </button>
+      ))}
+    </div>
   );
 }
 
