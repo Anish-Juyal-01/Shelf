@@ -4,6 +4,8 @@
 nine other launchers installed, *and* the games you downloaded as a zip and unpacked into some folder. It keeps track
 of what you play, and shows you what's quietly filling up your drives.
 
+**Website: [shelf-anish.vercel.app](https://shelf-anish.vercel.app)** · **[Download for Windows](https://github.com/Anish-Juyal-01/Shelf/releases/latest/download/Shelf-win-x64.zip)**
+
 ![Shelf's library: games on a wheel rising out of a painted sky, and a one-sentence summary of the PC](docs/screenshots/library.png)
 
 - **Every launcher**: Steam, Epic Games, GOG Galaxy, EA app, Ubisoft Connect, Rockstar, Battle.net, Riot, Xbox app
@@ -107,7 +109,7 @@ The project's one-page website lives in the same UI project:
 
 ```powershell
 cd ui; npm run dev:site      # http://localhost:5175
-cd ui; npm run build:site    # static files in ui\dist-site, ready for any host
+cd ui; npm run build:site    # static files in ui\dist-site (deployed to Vercel from ui/, see ui/vercel.json)
 ```
 
 ## How detection works

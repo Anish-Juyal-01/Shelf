@@ -1,0 +1,9 @@
+# Vercel only needs the website, which lives in ui/ (and builds its own dependencies).
+/*
+!/ui
+/ui/node_modules
+/ui/dist
+/ui/dist-site
+/ui/public/dev-icons
+/ui/.vercel
+/ui/.env*
