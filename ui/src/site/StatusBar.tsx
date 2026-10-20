@@ -74,6 +74,14 @@ function Roll({ k, children }: { k: number; children: ReactNode }) {
   );
 }
 
+/** Long names are cut at a word (keeping the chips a sensible size): "The Witcher 3: Wild Hunt" → "The Witcher 3". */
+function short(title: string, max = 20): string {
+  if (title.length <= max) return title;
+  const head = title.split(":")[0];
+  if (head.length <= max) return head;
+  return title.slice(0, title.lastIndexOf(" ", max)) + "…";
+}
+
 export function StatusBar({ games }: { games: GameView[] }) {
   const doingTick = useBeat(7000, 3500); // left chip
   const findTick = useBeat(7000, 7000); // right chip, half a beat later
@@ -90,7 +98,7 @@ export function StatusBar({ games }: { games: GameView[] }) {
   const doing = [
     <>Watching this PC</>,
     <>Scanning <span className="typed text-[12px]">{scanWhere}</span></>,
-    <>Tracking <b className="font-medium text-ink">{playing.title.split(":")[0]}</b> <span className="typed text-[11.5px] text-ink-3">· {12 + ((doingTick * 17) % 50)}m</span></>,
+    <>Tracking <b className="font-medium text-ink">{short(playing.title)}</b> <span className="typed text-[11.5px] text-ink-3">· {12 + ((doingTick * 17) % 50)}m</span></>,
     <>Checking {LAUNCHERS[doingTick % LAUNCHERS.length]}</>,
   ][phase];
   const dot = ["bg-ok", "bg-u-blue", "bg-u-red", "bg-u-yellow"][phase];
@@ -106,17 +114,13 @@ export function StatusBar({ games }: { games: GameView[] }) {
           {phase === 0 && <span className="typed text-[11.5px] text-ink-3 tabular-nums max-sm:hidden">· {found} games · {bytes(total)}</span>}
         </Roll>
       </span>
-      <span
-        className={`${chip} max-w-full min-w-0 overflow-hidden py-1 pl-1.5`}
-        // Should the row ever run short of room, the second chip's end fades out rather than dropping to a new line.
-        style={{ maskImage: "linear-gradient(90deg, black calc(100% - 14px), transparent)", WebkitMaskImage: "linear-gradient(90deg, black calc(100% - 14px), transparent)" }}
-      >
+      <span className={`${chip} max-w-full min-w-0 py-1 pl-1.5`}>
         <Roll k={findTick}>
           <span className="w-[18px] flex-none overflow-hidden rounded-[3px]">
             <Cover title={latest.title} url={latest.coverUrl} bare />
           </span>
           <span>
-            found <b className="font-medium text-ink">{latest.title}</b>
+            found <b className="font-medium text-ink">{short(latest.title)}</b>
             <span className="typed text-[11.5px] text-ink-3 max-sm:hidden"> · {findWhere}</span>
           </span>
         </Roll>
