@@ -20,28 +20,40 @@ let current: ThemePref = "light";
 let listening = false;
 
 /**
- * Switch theme with a ripple: a disc of the new background colour grows out of (x, y) — the button that was clicked —
- * until it covers the page; the theme flips underneath it, and the disc fades away to reveal the new look. Only a
- * transform and an opacity animate, so it stays smooth even on this heavy page (a full-page View Transition has to
- * screenshot everything first, which is what made it lag).
+ * Switch theme with a ripple behind the page: everything in front (text, cards, covers) takes the new theme at once,
+ * while the background colour spreads out in a circle from (x, y) — the button that was clicked. Only the backdrop
+ * ripples; nothing in front is ever covered. The circle is a small disc scaled up (just a transform on a 120px layer),
+ * so it stays smooth on this heavy page.
  */
 let ripple: { disc: HTMLElement; grow: Animation } | null = null;
 
+const BG = { light: "#f6f4ef", dark: "#0e0f13" } as const;
+
+function endRipple() {
+  if (!ripple) return;
+  ripple.grow.cancel();
+  ripple.disc.remove();
+  ripple = null;
+  document.body.style.background = "";
+  document.documentElement.classList.remove("theme-rippling");
+}
+
 export function switchSiteTheme(pref: ThemePref, x: number, y: number) {
-  // A second click mid-ripple: drop the unfinished one (its flip never happens) and start from what's on screen.
-  if (ripple) {
-    ripple.grow.cancel();
-    ripple.disc.remove();
-    ripple = null;
-  }
-  const from = document.documentElement.dataset.theme;
+  endRipple(); // a second click mid-ripple starts fresh from what's on screen
+  const root = document.documentElement;
+  const from = root.dataset.theme === "dark" ? "dark" : "light";
   const to = pref === "system" ? (media().matches ? "dark" : "light") : pref;
   if (from === to || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     applySiteTheme(pref);
     return;
   }
+  // Hold the old background behind the page, then flip the theme (transitions off, so nothing animates colour).
+  document.body.style.background = BG[from];
+  root.classList.add("theme-flipping", "theme-rippling");
+  applySiteTheme(pref);
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove("theme-flipping")));
+
   const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-  // A small disc scaled up, rather than a page-sized one: the GPU only ever holds a 120px texture.
   const D = 120, end = (2 * r) / D + 0.05;
   const disc = document.createElement("div");
   disc.setAttribute("aria-hidden", "true");
@@ -52,27 +64,21 @@ export function switchSiteTheme(pref: ThemePref, x: number, y: number) {
     width: `${D}px`,
     height: `${D}px`,
     borderRadius: "50%",
-    background: to === "dark" ? "#0e0f13" : "#f6f4ef",
+    background: BG[to],
     pointerEvents: "none",
-    zIndex: "9999",
+    zIndex: "0", // behind the page, which sits at z-index 1
     transform: "scale(0)",
-    willChange: "transform, opacity",
+    willChange: "transform",
   });
-  document.body.appendChild(disc);
-  const grow = disc.animate([{ transform: "scale(0)" }, { transform: `scale(${end})` }], { duration: 480, easing: "cubic-bezier(.5,0,.2,1)", fill: "forwards" });
+  document.body.prepend(disc);
+  const grow = disc.animate([{ transform: "scale(0)" }, { transform: `scale(${end})` }], { duration: 650, easing: "cubic-bezier(.45,0,.2,1)", fill: "forwards" });
   ripple = { disc, grow };
   grow.onfinish = () => {
+    // The disc now covers the whole backdrop in the new colour; hand over to the real background.
+    document.body.style.background = "";
+    root.classList.remove("theme-rippling");
+    disc.remove();
     ripple = null;
-    // Flip with transitions off, so hundreds of colour transitions don't all start at once.
-    const root = document.documentElement;
-    root.classList.add("theme-flipping");
-    applySiteTheme(pref);
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        root.classList.remove("theme-flipping");
-        disc.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, easing: "ease-out", fill: "forwards" }).onfinish = () => disc.remove();
-      }),
-    );
   };
 }
 

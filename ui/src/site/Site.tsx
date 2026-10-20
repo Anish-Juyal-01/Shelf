@@ -19,7 +19,7 @@ export function Site() {
   const [games] = useState(randomGames);
   const faller = games[0];
   return (
-    <div className="min-h-screen bg-bg text-ink">
+    <div className="relative z-[1] min-h-screen text-ink">
       <Nav />
       <Journey
         games={games}
@@ -70,7 +70,7 @@ export function Site() {
 
 function Nav() {
   return (
-    <header className="sticky top-0 z-30 bg-bg/85 backdrop-blur-md">
+    <header className="site-nav sticky top-0 z-30 bg-bg/85 backdrop-blur-md">
       <div className="mx-auto flex h-[72px] max-w-[1480px] items-center gap-3 px-4 sm:px-8 lg:px-14">
         <a href="#" className="flex items-center gap-2.5" aria-label="Shelf">
           <img src="./icon.svg" alt="" className="size-10" />

@@ -127,3 +127,7 @@
 .theme-flipping * {
   transition: none !important;
 }
+/* During the theme ripple the bar at the top lets the backdrop show through, so it ripples with it. */
+.theme-rippling .site-nav {
+  background: transparent;
+}
