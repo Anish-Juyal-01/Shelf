@@ -97,15 +97,20 @@ export function StatusBar({ games }: { games: GameView[] }) {
 
   const chip = "inline-flex h-9 items-center gap-2 rounded-full border border-rule-strong bg-surface px-3.5 text-ink-2 shadow-[0_1px_2px_rgb(0_0_0/0.04)]";
   return (
-    <div className="mb-9 flex flex-wrap items-center gap-2.5 text-[13px]" aria-hidden>
+    <div className="mb-9 flex items-center gap-2.5 text-[13px] max-sm:flex-wrap" aria-hidden>
       <span className={chip}>
         <span key={phase} className={`site-dot pulse-dot size-2 flex-none rounded-full ${dot}`} />
         <Roll k={doingTick}>
           <span>{doing}</span>
-          <span className="typed text-[11.5px] text-ink-3 tabular-nums max-sm:hidden">· {found} games · {bytes(total)}</span>
+          {/* The totals ride with the short "Watching" line only, so the two chips together always fit on one row. */}
+          {phase === 0 && <span className="typed text-[11.5px] text-ink-3 tabular-nums max-sm:hidden">· {found} games · {bytes(total)}</span>}
         </Roll>
       </span>
-      <span className={`${chip} max-w-full min-w-0 overflow-hidden py-1 pl-1.5`}>
+      <span
+        className={`${chip} max-w-full min-w-0 overflow-hidden py-1 pl-1.5`}
+        // Should the row ever run short of room, the second chip's end fades out rather than dropping to a new line.
+        style={{ maskImage: "linear-gradient(90deg, black calc(100% - 14px), transparent)", WebkitMaskImage: "linear-gradient(90deg, black calc(100% - 14px), transparent)" }}
+      >
         <Roll k={findTick}>
           <span className="w-[18px] flex-none overflow-hidden rounded-[3px]">
             <Cover title={latest.title} url={latest.coverUrl} bare />
