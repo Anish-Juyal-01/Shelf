@@ -84,3 +84,25 @@
 .site-tint {
   animation: site-tint-in 1.8s ease both;
 }
+
+/* Status chips: the old line rolls up and blurs out while the new one rises in from below. */
+@keyframes site-roll-out {
+  to {
+    transform: translateY(-110%);
+    opacity: 0;
+    filter: blur(3px);
+  }
+}
+@keyframes site-roll-in {
+  from {
+    transform: translateY(110%);
+    opacity: 0;
+    filter: blur(3px);
+  }
+}
+.site-roll-out {
+  animation: site-roll-out 0.55s cubic-bezier(0.6, 0, 0.8, 0.4) forwards;
+}
+.site-roll-in {
+  animation: site-roll-in 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) 0.12s both;
+}
