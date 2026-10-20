@@ -21,6 +21,14 @@ public static class GameMatcher
         ["grandtheftautovenhanced"] = "gtav",
     };
 
+    /// <summary>How an aliased game is named on the shelf (rather than after whichever launcher found it).</summary>
+    private static readonly Dictionary<string, string> AliasTitles = new()
+    {
+        ["roblox"] = "Roblox",
+        ["minecraft"] = "Minecraft",
+        ["gtav"] = "Grand Theft Auto V",
+    };
+
     public static List<GameEntry> Merge(IEnumerable<InstallRecord> records)
     {
         var installs = MergeSameFolder(records);
@@ -45,7 +53,7 @@ public static class GameMatcher
                 .ToList();
             g.Installs.Clear();
             g.Installs.AddRange(ordered);
-            g.Title = g.Primary.Title;
+            g.Title = AliasTitles.GetValueOrDefault(g.Key) ?? NameCleaner.Display(g.Primary.Title);
         }
         return [.. games.Values.OrderBy(g => g.Title, StringComparer.OrdinalIgnoreCase)];
     }

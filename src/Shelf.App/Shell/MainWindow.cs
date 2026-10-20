@@ -22,10 +22,13 @@ internal sealed class MainWindow : Window
     private readonly UiAssets _assets = new();
     private readonly Func<string, string?> _art;
     private Task? _init;
+    private readonly string _cacheDir;
 
     /// <param name="art">Maps "&lt;gameId&gt;/cover.jpg" to a file in Shelf's art cache (or null).</param>
-    public MainWindow(Func<string, string?> art)
+    /// <param name="cacheDir">Shelf's cache folder; the window's browser data lives in it.</param>
+    public MainWindow(Func<string, string?> art, string cacheDir)
     {
+        _cacheDir = cacheDir;
         _art = art;
         Title = "Shelf";
         Width = 1280;
@@ -141,7 +144,8 @@ internal sealed class MainWindow : Window
 
     private async Task InitializeWebAsync()
     {
-        var dataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Shelf", "WebView2");
+        // Inside Shelf's own cache folder, so a copy with its own data folder (SHELF_DATA_DIR) gets its own browser too.
+        var dataDir = Path.Combine(_cacheDir, "WebView2");
         CoreWebView2Environment env;
         try
         {

@@ -63,8 +63,8 @@ function black(id: PaletteId, name: string, blurb: string, a: { accent: string; 
   });
   return {
     id, name, blurb, black: true,
-    light: base("#121212", "#1b1b1b", "#222222", "#0b0b0b", ["#f4f4f4", "#cfcfcf", "#939393", "#5e5e5e"], ["#262626", "#393939"], DAY_SKY, ["#2c2c31", "#0c0c0d"]),
-    dark: base("#000000", "#0d0d0d", "#151515", "#060606", ["#f2f2f2", "#c4c4c4", "#8a8a8a", "#555555"], ["#1c1c1c", "#2e2e2e"], NIGHT_SKY, ["#1e1e22", "#050506"]),
+    light: base("#121212", "#1b1b1b", "#222222", "#0b0b0b", ["#f4f4f4", "#cfcfcf", "#939393", "#5e5e5e"], ["#262626", "#393939"], DAY_SKY, ["#1e1e21", "#0a0a0b"]),
+    dark: base("#000000", "#0d0d0d", "#151515", "#060606", ["#f2f2f2", "#c4c4c4", "#8a8a8a", "#555555"], ["#1c1c1c", "#2e2e2e"], NIGHT_SKY, ["#131315", "#030303"]),
   };
 }
 const DAY_SKY = ["#0a0a0a", "#171717"];
@@ -199,13 +199,17 @@ PALETTES.push(...BLACK_PALETTES);
 
 export const paletteById = (id: string | undefined): Palette => PALETTES.find((p) => p.id === id) ?? PALETTES[0];
 
-const block = (selector: string, t: Tokens, scheme: "light" | "dark") =>
-  `${selector}{${Object.entries(t).map(([k, v]) => `--${k}:${v};`).join("")}color-scheme:${scheme};}`;
+/** Warnings stay red even where a black theme's "red" underline colour is lime, grey or violet. */
+const WARNING_RED = { "--stamp-red": "#ff5f57", "--margin-red": "#ff5f57" };
+
+const block = (selector: string, t: Tokens, scheme: "light" | "dark", extra: Record<string, string> = {}) =>
+  `${selector}{${[...Object.entries(t).map(([k, v]) => `--${k}:${v};`), ...Object.entries(extra).map(([k, v]) => `${k}:${v};`)].join("")}color-scheme:${scheme};}`;
 
 /** CSS for every palette: `:root[data-palette=x]` for day, plus `[data-theme=dark]` for night. */
 export function paletteCss(): string {
   return PALETTES.map((p) =>
-    block(`:root[data-palette="${p.id}"]`, p.light, p.black ? "dark" : "light") + block(`:root[data-palette="${p.id}"][data-theme="dark"]`, p.dark, "dark"),
+    block(`:root[data-palette="${p.id}"]`, p.light, p.black ? "dark" : "light", p.black ? WARNING_RED : {}) +
+    block(`:root[data-palette="${p.id}"][data-theme="dark"]`, p.dark, "dark", p.black ? WARNING_RED : {}),
   ).join("\n");
 }
 

@@ -71,7 +71,7 @@ public partial class App : Application
             _trayIcon = new System.Drawing.Icon(iconStream, System.Windows.Forms.SystemInformation.SmallIconSize);
         _tray = new TrayController(_trayIcon, () => _ = ShowWindowAsync(), () => _host.RefreshAll(), QuitApp);
 
-        _window = new MainWindow(_host.Art.Resolve);
+        _window = new MainWindow(_host.Art.Resolve, _host.Paths.CacheDir);
         _bridge = new UiBridge(_window, _host, QuitApp);
         _bridge.ThemeChanged += pref =>
         {

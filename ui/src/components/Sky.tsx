@@ -102,8 +102,10 @@ function luma(h: string): number {
 }
 
 function Defs({ t }: { t: Tokens }) {
-  // Dark clouds (the black themes) only get a faint moonlit top; lifting them toward white makes grey balls.
-  const light = mix(t.cloud, "#ffffff", luma(t.cloud) < 0.2 ? 0.12 : 0.55);
+  // Dark clouds (the black themes) are near-silhouettes: only the faintest rim of light, tinted by the sky's glow.
+  // Lifting them toward white is what turns them into grey plastic balls.
+  const dark = luma(t.cloud) < 0.2;
+  const light = dark ? mix(t.cloud, t["sky-glow"], 0.1) : mix(t.cloud, "#ffffff", 0.55);
   const mid = t.cloud;
   const shade = t["cloud-shade"];
   const deep = mix(shade, t["sky-top"], 0.25);

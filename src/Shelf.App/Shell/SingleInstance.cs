@@ -1,10 +1,16 @@
+using System.IO;
+
 namespace Shelf.App.Shell;
 
 /// <summary>Ensures one Shelf per user session; a second launch asks the first to show its window.</summary>
 internal sealed class SingleInstance : IDisposable
 {
-    private const string MutexName = @"Local\Shelf.SingleInstance.v1";
-    private const string EventName = @"Local\Shelf.Activate.v1";
+    // A copy pointed at its own data folder (SHELF_DATA_DIR) is a separate instance, so it can run next to the real one.
+    private static readonly string Suffix = Environment.GetEnvironmentVariable("SHELF_DATA_DIR") is { Length: > 0 } dir
+        ? "." + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(dir).ToLowerInvariant())))[..12]
+        : "";
+    private static readonly string MutexName = @"Local\Shelf.SingleInstance.v1" + Suffix;
+    private static readonly string EventName = @"Local\Shelf.Activate.v1" + Suffix;
 
     private readonly Mutex _mutex;
     private readonly EventWaitHandle _activate;

@@ -35,7 +35,7 @@ export function TopBar() {
 
   return (
     <header
-      className="relative z-30 flex h-[52px] shrink-0 items-center bg-bg pl-6"
+      className="relative z-30 flex h-[52px] shrink-0 items-center overflow-hidden bg-bg pl-6 max-[960px]:pl-4"
       onMouseDown={(e) => {
         if ((e.target as HTMLElement).closest("button, a")) return;
         startDrag(e, "caption");
@@ -45,14 +45,14 @@ export function TopBar() {
         bridge.send({ type: "window", action: "maximize" });
       }}
     >
-      <nav aria-label="Sections" className="font-display flex items-baseline gap-2 text-[22px] leading-none">
+      <nav aria-label="Sections" className="font-display flex shrink-0 items-baseline gap-2 text-[22px] leading-none whitespace-nowrap max-[960px]:gap-1.5 max-[960px]:text-[19px]">
         <button onClick={() => setView("library")} className="cursor-pointer pr-1 text-[26px] text-ink" aria-label="Shelf — library">
           Shelf<span className="text-u-red">.</span>
         </button>
         {sections.map((s) => {
           const active = view === s.view && gameId === null;
           return (
-            <span key={s.view} className="flex items-baseline gap-2">
+            <span key={s.view} className="flex items-baseline gap-2 max-[960px]:gap-1.5">
               <span className="text-ink-4">/</span>
               <button
                 onClick={() => setView(s.view)}
@@ -64,7 +64,7 @@ export function TopBar() {
                   <sup className="typed ml-0.5 text-[10px] text-u-red">{review}</sup>
                 )}
                 {s.view === "settings" && problems > 0 && (
-                  <AlertTriangle size={11} className="ml-0.5 inline align-super text-warn" aria-label={`${problems} launcher problem(s)`} />
+                  <AlertTriangle size={11} className="ml-0.5 inline shrink-0 align-super text-warn" aria-label={`${problems} launcher problem(s)`} />
                 )}
               </button>
             </span>
@@ -73,12 +73,15 @@ export function TopBar() {
       </nav>
 
       {bridge.isPreview && (
-        <span className="typed ml-5 rounded-full border border-u-blue/40 px-2.5 py-0.5 text-[10.5px] text-u-blue">preview data</span>
+        <span className="typed ml-5 shrink-0 rounded-full border border-u-blue/40 px-2.5 py-0.5 text-[10.5px] whitespace-nowrap text-u-blue max-[1100px]:hidden">preview data</span>
       )}
-      <div className="flex-1" />
-      <NowPlaying />
-      <ScanStatus />
-      <div className="ml-3 flex h-[52px] items-stretch" role="group" aria-label="Window controls">
+      <div className="min-w-4 flex-1" />
+      {/* Status can give up room (and hide) before the sections or the window buttons ever do. */}
+      <div className="flex min-w-0 shrink items-center overflow-hidden">
+        <NowPlaying />
+        <ScanStatus />
+      </div>
+      <div className="ml-3 flex h-[52px] shrink-0 items-stretch" role="group" aria-label="Window controls">
         <WindowButton label="Minimize" onClick={() => bridge.send({ type: "window", action: "minimize" })}>
           <Minus size={15} strokeWidth={1.5} />
         </WindowButton>
@@ -117,9 +120,9 @@ function NowPlaying() {
   const p = playing[0];
   const g = games.get(p.gameId);
   return (
-    <button onClick={() => openGame(p.gameId)} className="mr-3 flex cursor-pointer items-center gap-2 rounded-full border border-rule-strong bg-surface py-1 pr-3.5 pl-2.5 text-[12.5px] hover:border-ink-3">
-      <span className="pulse-dot size-2 rounded-full bg-ok" />
-      <span className="max-w-[180px] truncate text-ink">{g?.title ?? "A game"}</span>
+    <button onClick={() => openGame(p.gameId)} className="mr-3 flex min-w-0 shrink cursor-pointer items-center gap-2 rounded-full border border-rule-strong bg-surface py-1 pr-3.5 pl-2.5 text-[12.5px] whitespace-nowrap hover:border-ink-3">
+      <span className="pulse-dot size-2 shrink-0 rounded-full bg-ok" />
+      <span className="max-w-[180px] min-w-0 truncate text-ink">{g?.title ?? "A game"}</span>
       <span className="typed text-[11px] text-ink-3">{duration((now - Date.parse(p.since)) / 1000)}</span>
       {playing.length > 1 && <span className="typed text-[11px] text-ink-3">+{playing.length - 1}</span>}
     </button>
@@ -132,7 +135,7 @@ function ScanStatus() {
   if (!scan) return null;
   if (scan.running) {
     return (
-      <div className="mr-1 flex items-center gap-2 text-[12px] text-ink-2" title={scan.path ?? ""}>
+      <div className="mr-1 flex items-center gap-2 text-[12px] whitespace-nowrap text-ink-2" title={scan.path ?? ""}>
         <RefreshCw size={13} className="animate-spin text-u-blue" />
         <span>{scan.phase ?? "Scanning"}</span>
         <span className="typed text-[11px] text-ink-3">{scan.dirs.toLocaleString()} folders</span>

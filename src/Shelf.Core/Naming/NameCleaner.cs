@@ -40,6 +40,33 @@ public static partial class NameCleaner
         return s.Length > 0 ? s : raw.Trim();
     }
 
+    /// <summary>Edition labels that only clutter a title on a shelf (the game is the same).</summary>
+    private static readonly string[] Editions =
+    [
+        // Longer labels first, so "Digital Deluxe Edition" goes as a whole rather than leaving "Digital".
+        "Game of the Year", "Digital Deluxe", "GOTY", "Deluxe", "Definitive", "Complete", "Ultimate", "Gold", "Standard",
+        "Premium", "Champions", "Collector's", "Enhanced", "Legendary", "Special", "Anniversary",
+    ];
+
+    /// <summary>
+    /// The name to show: the title as the launcher spells it, minus a trailing edition label ("Sekiro Shadows Die Twice GOTY Edition" →
+    /// "Sekiro Shadows Die Twice", "F1 22 Champions Edition" → "F1 22"). Identity (<see cref="Key"/>) is unaffected.
+    /// </summary>
+    public static string Display(string title)
+    {
+        var s = title.Trim();
+        foreach (var e in Editions)
+        {
+            var tail = " " + e + " Edition";
+            if (s.Length > tail.Length && s.EndsWith(tail, StringComparison.OrdinalIgnoreCase))
+            {
+                s = s[..^tail.Length].TrimEnd(' ', '-', '–', ':', ',');
+                break;
+            }
+        }
+        return s.Length > 0 ? s : title.Trim();
+    }
+
     /// <summary>Key for de-duplication: lower-case letters and digits only, trademark signs and a leading "the" dropped.</summary>
     public static string Key(string title)
     {

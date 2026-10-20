@@ -92,4 +92,15 @@ public class GameMatcherTests
         Assert.Equal(["Celeste", "Stray"], snap.Games.Select(g => g.Title));
         Assert.Equal("Maybe", Assert.Single(snap.Review).Title);
     }
+
+    [Fact]
+    public void AliasedGamesGetTheirOwnName()
+    {
+        var games = GameMatcher.Merge([
+            R(SourceKind.Xbox, "Minecraft Launcher", @"C:\XboxGames\Minecraft Launcher"),
+            R(SourceKind.InstalledApps, "Sekiro Shadows Die Twice GOTY Edition", @"C:\Games\Sekiro"),
+        ]);
+        Assert.Equal(["Minecraft", "Sekiro Shadows Die Twice"], games.Select(g => g.Title));
+        Assert.Equal("minecraft", games[0].Key);
+    }
 }

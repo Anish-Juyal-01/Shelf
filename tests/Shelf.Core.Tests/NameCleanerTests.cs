@@ -47,4 +47,21 @@ public class NameCleanerTests
     [InlineData("Ori & the Blind Forest", "Ori and the Blind Forest")]
     [InlineData("Pokémon", "Pokemon")]
     public void KeysMatchAcrossSpellings(string a, string b) => Assert.Equal(NameCleaner.Key(a), NameCleaner.Key(b));
+
+    [Theory]
+    [InlineData("Sekiro Shadows Die Twice GOTY Edition", "Sekiro Shadows Die Twice")]
+    [InlineData("F1 22 Champions Edition", "F1 22")]
+    [InlineData("Lies of P Deluxe Edition", "Lies of P")]
+    [InlineData("Cyberpunk 2077 - Ultimate Edition", "Cyberpunk 2077")]
+    [InlineData("Battlefield 2042 Digital Deluxe Edition", "Battlefield 2042")]
+    [InlineData("The Witcher 3: Wild Hunt Game of the Year Edition", "The Witcher 3: Wild Hunt")]
+    [InlineData("Disco Elysium - The Final Cut", "Disco Elysium - The Final Cut")] // part of the name, not an edition
+    [InlineData("Dark Souls Remastered", "Dark Souls Remastered")]
+    [InlineData("Deluxe Edition", "Deluxe Edition")] // nothing left otherwise
+    [InlineData("VALORANT", "VALORANT")] // spelled the way the launcher spells it
+    public void DisplayDropsEditionLabels(string raw, string expected) => Assert.Equal(expected, NameCleaner.Display(raw));
+
+    [Fact]
+    public void DisplayDoesNotChangeIdentity() =>
+        Assert.Equal(NameCleaner.Key("Sekiro Shadows Die Twice GOTY Edition"), NameCleaner.Key("Sekiro Shadows Die Twice GOTY Edition"));
 }

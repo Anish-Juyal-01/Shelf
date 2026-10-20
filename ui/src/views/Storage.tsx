@@ -24,7 +24,7 @@ export function Storage() {
     <div className="mx-auto max-w-[1180px] px-8 pt-7 pb-16">
       <PageHead
         title="Storage"
-        sub={<>{bytes(total)} of games · {bytes(overdueBytes + leftoverBytes)} you could probably free</>}
+        sub={<>{bytes(total)} of games · {overdueBytes + leftoverBytes > 0 ? `${bytes(overdueBytes + leftoverBytes)} you could probably free` : "nothing sitting idle right now"}</>}
       />
       <p className="mb-7 max-w-[680px] text-[13px] text-ink-2">
         Shelf never deletes anything. <em>Uninstall</em> opens the launcher's own uninstaller (or Windows' Installed apps);
