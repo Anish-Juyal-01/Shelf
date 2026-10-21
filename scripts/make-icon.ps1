@@ -2,7 +2,7 @@
 .SYNOPSIS
   Renders the Shelf app icon (multi-resolution .ico with PNG frames) with GDI+: three book spines on a shelf,
   on a bottle-green tile. Matches ui/public/icon.svg.
-  Output: src/Shelf.App/Assets/app.ico and ui/public/icon.png
+  Output: src-tauri/icons/icon.ico and ui/public/icon.png
 #>
 param(
     [string]$Root = (Split-Path -Parent $PSScriptRoot)
@@ -76,7 +76,7 @@ $frames = foreach ($sz in $sizes) {
 }
 
 # ICO container: ICONDIR + ICONDIRENTRY[] + PNG payloads.
-$out = Join-Path $Root 'src/Shelf.App/Assets/app.ico'
+$out = Join-Path $Root 'src-tauri/icons/icon.ico'
 New-Item -ItemType Directory -Force (Split-Path $out) | Out-Null
 $fs = [System.IO.File]::Create($out)
 $w = New-Object System.IO.BinaryWriter $fs

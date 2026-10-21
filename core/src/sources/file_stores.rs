@@ -1,15 +1,14 @@
 //! Launchers whose installs are found in their own files: Xbox app / Game Pass, itch and Amazon Games.
 
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::path::Path;
 
-use rusqlite::{Connection, OpenFlags};
 use sha2::{Digest, Sha256};
 
 use super::SourceReader;
 use crate::model::{plural, InstallRecord, SourceKind, SourceResult, SourceState};
 use crate::platform::{normalize, SystemContext};
+use crate::storage::snapshot::Snapshot;
 
 /// Xbox app / PC Game Pass: each drive's `.GamingRoot` names its games folder (default `XboxGames`); every game has
 /// `Content\MicrosoftGame.config`.
@@ -99,45 +98,6 @@ pub fn publisher_id(publisher: &str) -> String {
     // 64 bits + one zero bit = 13 groups of 5.
     let bits = (n as u128) << 1;
     (0..13).rev().map(|i| ALPHABET[((bits >> (i * 5)) & 0x1f) as usize] as char).collect()
-}
-
-/// Opens another app's SQLite database without touching it: the file (and its journal) is copied to a temp folder and
-/// the copy is read. Opening the original, even read-only, could take locks the owning launcher doesn't expect.
-struct Snapshot {
-    dir: PathBuf,
-    conn: Option<Connection>,
-}
-
-impl Snapshot {
-    fn open(db: &Path) -> Result<Self, String> {
-        static N: AtomicU64 = AtomicU64::new(0);
-        let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
-        let dir = std::env::temp_dir().join("Shelf").join(format!("snap-{}-{stamp}-{}", std::process::id(), N.fetch_add(1, Ordering::Relaxed)));
-        fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-        let name = db.file_name().ok_or("no file name")?;
-        let copy = dir.join(name);
-        let mut snap = Self { dir, conn: None };
-        fs::copy(db, &copy).map_err(|e| e.to_string())?;
-        for suffix in ["-wal", "-shm"] {
-            let from = PathBuf::from(format!("{}{suffix}", db.display()));
-            if from.is_file() {
-                let _ = fs::copy(&from, PathBuf::from(format!("{}{suffix}", copy.display())));
-            }
-        }
-        snap.conn = Some(Connection::open_with_flags(&copy, OpenFlags::SQLITE_OPEN_READ_WRITE).map_err(|e| e.to_string())?);
-        Ok(snap)
-    }
-
-    fn conn(&self) -> &Connection {
-        self.conn.as_ref().expect("open")
-    }
-}
-
-impl Drop for Snapshot {
-    fn drop(&mut self) {
-        self.conn.take();
-        let _ = fs::remove_dir_all(&self.dir);
-    }
 }
 
 /// itch app: `%APPDATA%\itch\db\butler.db` (caves = installs).

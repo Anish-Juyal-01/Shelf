@@ -1,5 +1,8 @@
 # Shelf — plan (phase 1)
 
+> Written for the first build (.NET + WPF + WebView2). The product design below still holds; the app has since moved
+> to Rust + Tauri — see [TAURI.md](TAURI.md) for how the code is laid out now.
+
 **What it's for:** know every game on this PC (wherever it came from), how much space each one takes, and when you
 last played it, so nothing gets forgotten and the drive stops filling up with games nobody plays.
 

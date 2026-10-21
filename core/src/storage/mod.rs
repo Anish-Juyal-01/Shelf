@@ -6,6 +6,7 @@ pub mod art_cache;
 pub mod db;
 pub mod library;
 pub mod sessions;
+pub mod snapshot;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};

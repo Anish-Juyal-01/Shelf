@@ -4,7 +4,7 @@
 nine other launchers installed, *and* the games you downloaded as a zip and unpacked into some folder. It keeps track
 of what you play, and shows you what's quietly filling up your drives.
 
-**Website: [shelf-anish.vercel.app](https://shelf-anish.vercel.app)** · **[Download for Windows](https://github.com/Anish-Juyal-01/Shelf/releases/latest/download/Shelf-win-x64.zip)**
+**Website: [shelf-anish.vercel.app](https://shelf-anish.vercel.app)** · **[Download for Windows](https://github.com/Anish-Juyal-01/Shelf/releases/latest)**
 
 ![Shelf's library: games on a wheel rising out of a painted sky, and a one-sentence summary of the PC](docs/screenshots/library.png)
 
@@ -27,7 +27,8 @@ of what you play, and shows you what's quietly filling up your drives.
 - **Twelve colour themes** — six colourful, six black — each with a day and a night version (or follow Windows), and
   two ways to show your library: a wheel or a ring.
 - Tray icon, Start with Windows, single instance, Windows notifications for new games.
-- Light on the PC: the watcher checks running programs every 5 seconds and uses well under 1% CPU.
+- Light on the PC: a small native app (Rust + Tauri) whose watcher checks running programs every 5 seconds and uses
+  well under 1% CPU.
 
 | Storage | Activity | Black theme (Ember) |
 |---|---|---|
@@ -37,21 +38,23 @@ of what you play, and shows you what's quietly filling up your drives.
 
 ## Install
 
-There's no prebuilt download yet, so for now Shelf is built from source — it takes a few minutes and two commands.
+**Download**: get the installer from [Releases](https://github.com/Anish-Juyal-01/Shelf/releases/latest) and run it.
+It installs for your user only (no admin rights) into `%LOCALAPPDATA%\Programs\Shelf`, with a Start menu entry.
+Shelf needs Microsoft Edge WebView2, which is already on Windows 11 and almost every up-to-date Windows 10 PC; the
+installer fetches it if it's missing.
 
-**You need**: Windows 10 (1809+) or 11, 64-bit; the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0);
-[Node.js](https://nodejs.org) 20 or newer; and Microsoft Edge WebView2, which is already on Windows 11 and almost every
-up-to-date Windows 10 PC (otherwise get the free
-[Evergreen WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)).
+**Or build it yourself** — you need Windows 10 (1809+) or 11, 64-bit; [Rust](https://rustup.rs) (stable, MSVC) with the
+Visual Studio C++ build tools; and [Node.js](https://nodejs.org) 20 or newer.
 
 ```powershell
 git clone https://github.com/Anish-Juyal-01/Shelf.git
 cd Shelf
-powershell -ExecutionPolicy Bypass -File scripts/build.ps1     # builds the UI, runs the tests, publishes dist\Shelf.exe
-powershell -ExecutionPolicy Bypass -File scripts/install.ps1   # copies it to %LOCALAPPDATA%\Programs\Shelf + Start menu
+powershell -ExecutionPolicy Bypass -File scripts/build.ps1     # runs the tests, builds the app + installer into dist\
+powershell -ExecutionPolicy Bypass -File scripts/install.ps1   # installs it for you (or run dist\Shelf_*-setup.exe)
 ```
 
-Then type **Shelf** in Windows search. No admin rights are needed for any of it.
+Then type **Shelf** in Windows search. Installing over an older Shelf (including the first, .NET-based builds) keeps
+your library, playtime and settings.
 
 **First run**: Shelf reads every launcher straight away. Then:
 
@@ -62,17 +65,22 @@ Then type **Shelf** in Windows search. No admin rights are needed for any of it.
 3. **Settings → Art** (optional): paste a free [SteamGridDB](https://www.steamgriddb.com) API key (sign in, then
    your profile → **Preferences → API → Generate**) for icons and art of games that aren't on Steam.
 
-**Updating**: `git pull`, then run both scripts again (install closes the running Shelf first). Your library is kept.
-
-**Uninstalling**: `scripts/install.ps1 -Uninstall` removes the program, the Start menu shortcut and the
-start-with-Windows task. Your library stays in `%APPDATA%\Shelf` — delete that and `%LOCALAPPDATA%\Shelf` too if you
-want everything gone.
+**Uninstalling**: Windows' *Installed apps*, or `scripts/install.ps1 -Uninstall`. This removes the program, the Start
+menu shortcut and the start-with-Windows task. Your library stays in `%APPDATA%\Shelf` — delete that and
+`%LOCALAPPDATA%\Shelf` too if you want everything gone.
 
 ## Build from source
 
+```
+core/        shelf-core — the engine: launcher readers, scanner, matcher, storage, watcher (no UI)
+cli/         shelf-cli — the engine from the command line
+src-tauri/   the app: window, bridge to the UI, tray, startup (Tauri 2)
+ui/          the React UI (and the website)
+```
+
 ```powershell
-./scripts/build.ps1                          # full pipeline: UI build + all tests + publish → dist\
-dotnet run --project src/Shelf.App           # day-to-day (builds the UI automatically if ui/dist is missing)
+./scripts/build.ps1                          # full pipeline: tests + release build + installer → dist\
+npx --prefix ui tauri dev                    # day-to-day: the app with a live-reloading UI
 cd ui; npm install; npm run dev              # the UI alone, with sample data, at http://localhost:5174
 ```
 
@@ -83,13 +91,13 @@ trying things without touching your real library.
 ### Tests
 
 ```powershell
-dotnet test tests/Shelf.Core.Tests      # launcher readers, folder classifier, scanner, name cleaner, tracking, storage, web art
+cargo test                              # launcher readers, folder classifier, scanner, name cleaner, tracking, storage, web art
 cd ui; npm test                         # themes, headline, treemap, library filters
 ```
 
 ### Command line
 
-`shelf-cli` (in `dist\tools`, and installed next to `Shelf.exe`) uses the same engine as the app:
+`shelf-cli` (in `dist\`, and installed next to `Shelf.exe`) uses the same engine as the app:
 
 ```powershell
 shelf-cli sources                  # what each launcher reader found, and any problems
@@ -134,7 +142,8 @@ them (a test checks that no code outside Shelf's own storage writes files). Ever
 
 - `%APPDATA%\Shelf\settings.json` — your settings (and your SteamGridDB key, if you add one)
 - `%APPDATA%\Shelf\shelf.db` — your library, play sessions and decisions (SQLite)
-- `%LOCALAPPDATA%\Shelf` — caches: art (`art\`), the scan cache, and the window's WebView2 data
+- `%LOCALAPPDATA%\Shelf` — caches: art (`art\`) and the scan cache
+- `%LOCALAPPDATA%pp.shelf.desktop` — the window's WebView2 data
 - Start with Windows: a per-user Task Scheduler task named **Shelf** (no admin rights)
 
 **What goes online**: only art lookups, and only while **Settings → Art → Look up missing art online** is on (it is by
@@ -145,8 +154,7 @@ switch off and Shelf never touches the network.
 
 ## Known limitations
 
-- **No signed release yet**: you build it yourself for now. A future download won't be code-signed at first either, so
-  Windows SmartScreen may ask before running it.
+- **Not code-signed yet**: Windows SmartScreen may ask before running the installer (*More info → Run anyway*).
 - **Loose-folder detection is a judgement call**: odd games can land in Review instead of the library, and the
   occasional tool can be suggested. Review and *Not a game* are there for that, and decisions are remembered.
 - **Playtime is counted while Shelf runs** (turn on *Start with Windows*). Steam's own hours are imported; other

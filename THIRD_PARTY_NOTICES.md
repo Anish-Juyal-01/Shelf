@@ -2,14 +2,25 @@
 
 Shelf is MIT-licensed (see [LICENSE](LICENSE)). It is built on these projects, each under its own license.
 
-## App (.NET)
+## App and engine (Rust)
 
 | Project | License |
 |---|---|
-| [Microsoft.Web.WebView2](https://www.nuget.org/packages/Microsoft.Web.WebView2) | Microsoft WebView2 SDK license (BSD-style) |
-| [Microsoft.Data.Sqlite](https://github.com/dotnet/efcore) | MIT |
-| [SQLitePCLRaw](https://github.com/ericsink/SQLitePCL.raw) | Apache-2.0 |
+| [Tauri](https://tauri.app) (and its dialog and notification plugins) | MIT or Apache-2.0 |
+| [Microsoft Edge WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (used through Tauri) | Microsoft WebView2 SDK license (BSD-style) |
+| [rusqlite](https://github.com/rusqlite/rusqlite) | MIT |
 | [SQLite](https://sqlite.org) | Public domain |
+| [serde](https://serde.rs) / [serde_json](https://github.com/serde-rs/json) | MIT or Apache-2.0 |
+| [fancy-regex](https://github.com/fancy-regex/fancy-regex) | MIT |
+| [roxmltree](https://github.com/RazrFalcon/roxmltree) | MIT or Apache-2.0 |
+| [ureq](https://github.com/algesten/ureq) | MIT or Apache-2.0 |
+| [notify](https://github.com/notify-rs/notify) | CC0-1.0 |
+| [png](https://github.com/image-rs/image-png) | MIT or Apache-2.0 |
+| [winreg](https://github.com/gentoo90/winreg-rs) | MIT |
+| [windows-sys](https://github.com/microsoft/windows-rs) | MIT or Apache-2.0 |
+| [sha2](https://github.com/RustCrypto/hashes) | MIT or Apache-2.0 |
+| [unicode-normalization](https://github.com/unicode-rs/unicode-normalization) | MIT or Apache-2.0 |
+| [chrono](https://github.com/chronotope/chrono), [ctrlc](https://github.com/Detegr/rust-ctrlc) (command line only) | MIT or Apache-2.0 |
 
 ## Interface (bundled into Shelf.exe)
 

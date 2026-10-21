@@ -1,0 +1,19 @@
+[package]
+name = "shelf-cli"
+description = "Shelf's command line: game detection, playtime and art without the app."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "shelf-cli"
+path = "src/main.rs"
+
+[dependencies]
+shelf-core = { path = "../core" }
+serde_json.workspace = true
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+ctrlc = "3"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading"] }

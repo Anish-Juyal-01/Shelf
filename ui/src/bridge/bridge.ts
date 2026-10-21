@@ -19,33 +19,7 @@ export interface Bridge {
   watchDrops?(onHover: (active: boolean) => void): () => void;
 }
 
-interface WebView2 {
-  postMessage(message: unknown): void;
-  postMessageWithAdditionalObjects(message: unknown, objects: FileList): void;
-  addEventListener(type: "message", listener: (e: { data: unknown }) => void): void;
-  removeEventListener(type: "message", listener: (e: { data: unknown }) => void): void;
-}
-
-declare global {
-  interface Window {
-    chrome?: { webview?: WebView2 };
-  }
-}
-
-function createHostBridge(webview: WebView2): Bridge {
-  return {
-    isPreview: false,
-    send: (message) => webview.postMessage(message),
-    sendFiles: (files) => webview.postMessageWithAdditionalObjects({ type: "dropFiles" } satisfies UiMessage, files),
-    subscribe(handler) {
-      const listener = (e: { data: unknown }) => handler(e.data as HostMessage);
-      webview.addEventListener("message", listener);
-      return () => webview.removeEventListener("message", listener);
-    },
-  };
-}
-
-/** The Tauri host (the Rust port): messages go in through the `ui_message` command and come back as `host` events. */
+/** The Tauri host: messages go in through the `ui_message` command and come back as `host` events. */
 function createTauriBridge(): Bridge {
   return {
     isPreview: false,
@@ -84,4 +58,4 @@ const RESIZE = {
 
 const isTauri = "__TAURI_INTERNALS__" in window;
 
-export const bridge: Bridge = isTauri ? createTauriBridge() : window.chrome?.webview ? createHostBridge(window.chrome.webview) : createPreviewBridge();
+export const bridge: Bridge = isTauri ? createTauriBridge() : createPreviewBridge();

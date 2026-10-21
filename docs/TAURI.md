@@ -1,25 +1,22 @@
-# Moving Shelf to Tauri (Rust)
+# Shelf on Tauri (Rust)
 
-Shelf is moving from WPF + WebView2 (C#) to Tauri 2 (Rust). The React UI stays exactly as it is: it already talks
-to its host through one message protocol (`ui/src/bridge/protocol.ts`), so the Rust host speaks the same messages
-(`ui_message` command in, `host` events out) and the UI only gained a third bridge next to the WebView2 one and the
-browser preview.
-
-The work happens on the `tauri` branch. `main` keeps the working C# app until the Rust one has caught up; then the C#
-projects (`src/`, `tests/`, `Shelf.sln`) are removed.
+Shelf moved from WPF + WebView2 (C#) to Tauri 2 (Rust) in five stages, on the `tauri` branch. The React UI stayed as
+it was: it talks to its host through one message protocol (`ui/src/bridge/protocol.ts`), so the Rust host speaks the
+same messages (`ui_message` command in, `host` events out). The C# projects are gone; the last C# release is v0.2.0.
 
 ## Layout
 
 ```
 core/         shelf-core — the engine (launcher readers, scanner, matcher, storage, watcher), no UI
-  src/        one module per area, mirroring src/Shelf.Core
-  tests/      fixture-based tests, ported from tests/Shelf.Core.Tests
+  src/        one module per area
+  tests/      fixture-based tests (ported from the C# tests)
+cli/          shelf-cli — the engine from the command line
 src-tauri/    the app: window, bridge, tray, startup — thin, calls into shelf-core
-ui/           unchanged React UI (plus the Tauri bridge)
+  windows/    installer hooks (NSIS, per-user)
+ui/           the React UI (plus the Tauri bridge) and the website
 ```
 
-Run it: `npm --prefix ui run dev` in one terminal, `cargo run -p shelf` in another (or `npx --prefix ui tauri dev`).
-Test it: `cargo test`.
+Run it: `npx --prefix ui tauri dev`. Test it: `cargo test`. Ship it: `scripts/build.ps1` (installer in `dist\`).
 
 ## Stages
 
@@ -36,7 +33,7 @@ files dropped on the window arrive through Tauri's drag-drop event with real pat
 Stage 4 notes: runtime detection now skips programs under `WindowsApps` (the C# watcher had suggested Claude and
 WhatsApp as games). Sleep is caught by the gap between polls rather than power events, so a session ends at the last
 poll before the PC slept. "Start with Windows" creates the same per-user sign-in task (`Shelf`) through `schtasks`.
-| 5 | CLI on shelf-core, installer (NSIS, per-user), build/install scripts, README, remove the C# projects | Shelf.Cli, scripts | |
+| 5 | CLI on shelf-core, installer (NSIS, per-user), build/install scripts, README, remove the C# projects | Shelf.Cli, scripts | **done** |
 
 Each stage ports the C# tests for what it moves, so behaviour is checked the same way it was before.
 

@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-// The production bundle is embedded into Shelf.exe and served from https://shelf.local/,
+// The production bundle is embedded into Shelf.exe and served by Tauri,
 // so asset URLs are relative and everything (fonts included) is bundled locally — no network access.
 export default defineConfig({
   base: "./",

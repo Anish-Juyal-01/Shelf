@@ -202,7 +202,6 @@ export type UiMessage =
   | { type: "accept"; id: number; title?: string }
   | { type: "reject"; id: number }
   | { type: "addExe" }
-  | { type: "dropFiles" }
   /** Paths of files dropped on the window (Tauri reports real paths itself). */
   | { type: "dropPaths"; paths: string[] }
   | { type: "refresh" }

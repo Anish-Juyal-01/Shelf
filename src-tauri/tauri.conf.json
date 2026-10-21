@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../ui/dist",
     "devUrl": "http://localhost:5174",
-    "beforeDevCommand": "npm --prefix ui run dev",
-    "beforeBuildCommand": "npm --prefix ui run build"
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
   },
   "app": {
     "windows": [
@@ -29,10 +29,23 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
-    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.png"
+    ],
     "windows": {
-      "nsis": { "installMode": "currentUser" }
-    }
-  }
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "windows/hooks.nsh",
+        "installerIcon": "icons/icon.ico"
+      }
+    },
+    "shortDescription": "Every game on your PC, in one place",
+    "publisher": "Anish Juyal",
+    "copyright": "MIT"
+  },
+  "mainBinaryName": "Shelf"
 }
