@@ -26,7 +26,7 @@ Test it: `cargo test`.
 | Stage | What | C# it replaces | Status |
 |---|---|---|---|
 | 1 | Tauri app, bridge, window controls; model, platform, VDF, Steam + Epic readers | Model, Platform, Vdf, SteamReader, EpicReader | **done** |
-| 2 | Every other reader (GOG, EA, Ubisoft, Rockstar, Battle.net, Riot, HoYoPlay, Xbox, itch, Amazon, installed apps); name cleaner, game matcher, exe/folder classifier, folder scanner + scan cache | Sources, Naming, Dedup, Scanning | |
+| 2 | Every other reader (GOG, EA, Ubisoft, Rockstar, Battle.net, Riot, HoYoPlay, Xbox, itch, Amazon, installed apps); name cleaner, game matcher, exe/folder classifier, folder scanner + scan cache | Sources, Naming, Dedup, Scanning | **done** |
 | 3 | SQLite library + sessions, settings, art cache and art locator, web art (Steam, SteamGridDB), library refresh, every UI message (launch, uninstall, review, roots…) | Storage, Library, Art, Metadata, Launching, AppHost, UiBridge | |
 | 4 | Watcher (process snapshots, playtime sessions, sleep, runtime detection with GPU counters, folder watching), tray, close-to-tray, start with Windows, single instance, notifications, exe icons | Watching, Tray, Shell | |
 | 5 | CLI on shelf-core, installer (NSIS, per-user), build/install scripts, README, remove the C# projects | Shelf.Cli, scripts | |

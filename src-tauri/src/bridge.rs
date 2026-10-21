@@ -2,7 +2,8 @@
 
 use serde::Deserialize;
 use serde_json::{json, Value};
-use shelf_core::model::{InstallRecord, SourceResult};
+use shelf_core::matcher::{self, GameEntry};
+use shelf_core::model::SourceResult;
 use shelf_core::platform::SystemContext;
 use tauri::{Emitter, WebviewWindow};
 
@@ -54,19 +55,15 @@ fn window_action(window: &WebviewWindow, action: &str) {
     };
 }
 
-/// The whole app state the UI renders. For now: games straight from the launcher readers, one per install, and
-/// honest empty values for everything that isn't ported yet.
+/// The whole app state the UI renders. For now: every launcher's games, merged into one entry per game (no database
+/// or folder scanning yet), and honest empty values for everything that isn't ported yet.
 fn build_state() -> Value {
     let ctx = SystemContext::real();
     let results = shelf_core::sources::read_all(&ctx);
     let now = iso(now_secs());
-    let games: Vec<Value> = results
-        .iter()
-        .flat_map(|r| r.installs.iter())
-        .filter(|i| i.is_installed)
-        .enumerate()
-        .map(|(n, i)| game_view(n as i64 + 1, i, &now))
-        .collect();
+    // Launcher installs go straight in; Windows' installed apps only when the classifier is confident.
+    let installs = results.iter().flat_map(|r| r.installs.iter().cloned()).filter(|i| i.source.is_store() || i.confidence >= 70).collect();
+    let games: Vec<Value> = matcher::merge(installs).iter().enumerate().map(|(n, g)| game_view(n as i64 + 1, g, &now)).collect();
     json!({
         "games": games,
         "review": [],
@@ -87,21 +84,23 @@ fn build_state() -> Value {
     })
 }
 
-fn game_view(id: i64, i: &InstallRecord, now: &str) -> Value {
+fn game_view(id: i64, g: &GameEntry, now: &str) -> Value {
+    let mut sources: Vec<_> = g.installs.iter().map(|i| i.source).collect();
+    sources.dedup();
     json!({
         "id": id,
-        "title": i.title,
-        "sources": [i.source],
-        "installed": i.is_installed,
+        "title": g.title,
+        "sources": sources,
+        "installed": g.is_installed(),
         "hidden": false,
-        "sizeBytes": i.size_bytes.unwrap_or(0),
-        "copies": 1,
-        "playSeconds": i.imported_play_seconds,
+        "sizeBytes": g.size_bytes(),
+        "copies": g.installs.iter().filter(|i| i.is_installed).count(),
+        "playSeconds": g.imported_play_seconds(),
         "trackedSeconds": 0,
-        "importedSeconds": i.imported_play_seconds,
-        "lastPlayed": i.imported_last_played.map(iso),
+        "importedSeconds": g.imported_play_seconds(),
+        "lastPlayed": g.imported_last_played().map(iso),
         "firstSeen": now,
-        "path": i.install_path,
+        "path": g.primary().install_path,
         "canLaunch": false,
         "genres": [],
         "year": null,

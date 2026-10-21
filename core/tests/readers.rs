@@ -175,3 +175,128 @@ fn epic_empty_manifests_folder_says_no_games() {
     assert_eq!(result.state, SourceState::Ok);
     assert_eq!(result.message, "Epic Games Launcher found, no games installed");
 }
+
+// ── Registry-based launchers (ported from the C# OtherReaderTests) ──
+
+use shelf_core::sources::registry_stores::*;
+
+const UNINSTALL: &str = r"HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall";
+
+#[test]
+fn gog_reads_games_skips_dlc() {
+    let t = TempTree::new();
+    let dir = t.dir("GOG Games/Disco Elysium");
+    let reg = FakeRegistry::default()
+        .set(r"HKLM\SOFTWARE\WOW6432Node\GOG.com\Games\1771589310", "gameName", "Disco Elysium")
+        .set(r"HKLM\SOFTWARE\WOW6432Node\GOG.com\Games\1771589310", "path", &dir)
+        .set(r"HKLM\SOFTWARE\WOW6432Node\GOG.com\Games\1771589310", "exe", &format!(r"{dir}\disco.exe"))
+        .set(r"HKLM\SOFTWARE\WOW6432Node\GOG.com\Games\1771589310", "workingDir", &dir)
+        .set(r"HKLM\SOFTWARE\WOW6432Node\GOG.com\Games\2000", "gameName", "Disco OST")
+        .set(r"HKLM\SOFTWARE\WOW6432Node\GOG.com\Games\2000", "path", &dir)
+        .set(r"HKLM\SOFTWARE\WOW6432Node\GOG.com\Games\2000", "dependsOn", "1771589310");
+    let result = GogReader.read(&context(&t, reg));
+    assert_eq!(result.installs.len(), 1);
+    let game = &result.installs[0];
+    assert_eq!(game.title, "Disco Elysium");
+    assert_eq!(game.working_dir.as_deref(), Some(dir.as_str()));
+    assert!(game.play_exes.contains(game.launch_exe.as_ref().unwrap()));
+}
+
+#[test]
+fn gog_nothing_registered_is_not_installed() {
+    let t = TempTree::new();
+    assert_eq!(GogReader.read(&context(&t, FakeRegistry::default())).state, SourceState::NotInstalled);
+}
+
+#[test]
+fn ubisoft_builds_launch_uri() {
+    let t = TempTree::new();
+    let dir = t.dir("Ubisoft/Assassin's Creed Origins");
+    let reg = FakeRegistry::default()
+        .set(r"HKLM\SOFTWARE\WOW6432Node\Ubisoft\Launcher", "InstallDir", &t.dir("Ubisoft Game Launcher"))
+        .set(r"HKLM\SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs\3539", "InstallDir", &dir);
+    let result = UbisoftReader.read(&context(&t, reg));
+    assert_eq!(result.installs.len(), 1);
+    assert_eq!(result.installs[0].title, "Assassin's Creed Origins");
+    assert_eq!(result.installs[0].launch_uri.as_deref(), Some("uplay://launch/3539/0"));
+}
+
+#[test]
+fn rockstar_skips_launcher_keys() {
+    let t = TempTree::new();
+    let reg = FakeRegistry::default()
+        .set(r"HKLM\SOFTWARE\WOW6432Node\Rockstar Games\Launcher", "InstallFolder", &t.dir("RL"))
+        .set(r"HKLM\SOFTWARE\WOW6432Node\Rockstar Games\Red Dead Redemption 2", "InstallFolder", &t.dir("RDR2"));
+    let result = RockstarReader.read(&context(&t, reg));
+    assert_eq!(result.installs.iter().map(|i| i.title.as_str()).collect::<Vec<_>>(), ["Red Dead Redemption 2"]);
+}
+
+#[test]
+fn ea_reads_registry_and_installer_data() {
+    let t = TempTree::new();
+    let reg = FakeRegistry::default()
+        .set(r"HKLM\SOFTWARE\WOW6432Node\Electronic Arts\EA Desktop", "InstallSuccessful", "true")
+        .set(r"HKLM\SOFTWARE\WOW6432Node\Electronic Arts\Battlefield 1", "Install Dir", &t.dir("BF1"));
+    t.text(
+        "Program Files/EA Games/It Takes Two/__Installer/installerdata.xml",
+        r#"<DiPManifest><gameTitles><gameTitle locale="de_DE">Es braucht zwei</gameTitle><gameTitle locale="en_US">It Takes Two</gameTitle></gameTitles></DiPManifest>"#,
+    );
+    let result = EaReader.read(&context(&t, reg));
+    let mut titles: Vec<_> = result.installs.iter().map(|i| i.title.as_str()).collect();
+    titles.sort();
+    assert_eq!(titles, ["Battlefield 1", "It Takes Two"]);
+    assert!(result.message.contains("encrypted"));
+}
+
+#[test]
+fn ea_not_installed() {
+    let t = TempTree::new();
+    assert_eq!(EaReader.read(&context(&t, FakeRegistry::default())).state, SourceState::NotInstalled);
+}
+
+#[test]
+fn hoyoplay_only_games_with_an_install_path() {
+    let t = TempTree::new();
+    let reg = FakeRegistry::default()
+        .set(r"HKCU\Software\Cognosphere\HYP\1_0", "InstallPath", &t.dir("HoYoPlay"))
+        .set(r"HKCU\Software\Cognosphere\HYP\1_0\hk4e_global", "GameInstallPath", "")
+        .set(r"HKCU\Software\Cognosphere\HYP\1_0\hkrpg_global", "GameInstallPath", &t.dir("HoYoPlay/games/Star Rail Games"));
+    let result = HoYoPlayReader.read(&context(&t, reg));
+    assert_eq!(result.installs.iter().map(|i| i.title.as_str()).collect::<Vec<_>>(), ["Honkai: Star Rail"]);
+}
+
+#[test]
+fn riot_launches_through_riot_client() {
+    let t = TempTree::new();
+    t.text("ProgramData/Riot Games/RiotClientInstalls.json", r#"{ "rc_default": "C:/Riot Games/Riot Client/RiotClientServices.exe" }"#);
+    let reg = FakeRegistry::default()
+        .set(&format!(r"{UNINSTALL}\Riot Game valorant.live"), "DisplayName", "VALORANT")
+        .set(&format!(r"{UNINSTALL}\Riot Game valorant.live"), "InstallLocation", &t.dir("Riot Games/VALORANT/live").replace('\\', "/"))
+        .set(&format!(r"{UNINSTALL}\Riot Game Riot_Client."), "DisplayName", "Riot Client")
+        .set(&format!(r"{UNINSTALL}\Riot Game Riot_Client."), "InstallLocation", &t.dir("Riot Games/Riot Client"));
+    let result = RiotReader.read(&context(&t, reg));
+    assert_eq!(result.installs.len(), 1);
+    let game = &result.installs[0];
+    assert_eq!(game.title, "VALORANT");
+    assert_eq!(game.launch_args.as_deref(), Some("--launch-product=valorant --launch-patchline=live"));
+    assert_eq!(game.launch_exe.as_deref(), Some(r"C:\Riot Games\Riot Client\RiotClientServices.exe"));
+    assert!(game.is_installed);
+}
+
+#[test]
+fn battlenet_from_blizzard_uninstall_entries() {
+    let t = TempTree::new();
+    t.dir("Program Files (x86)/Battle.net");
+    let ow = format!(r"{UNINSTALL}\Overwatch");
+    let reg = FakeRegistry::default()
+        .set(&ow, "DisplayName", "Overwatch")
+        .set(&ow, "Publisher", "Blizzard Entertainment")
+        .set(&ow, "InstallLocation", &t.dir("Overwatch"))
+        .set(&ow, "UninstallString", r#""C:\ProgramData\Battle.net\Agent\Blizzard Uninstaller.exe" --lang=enUS --uid=prometheus"#)
+        .set(&format!(r"{UNINSTALL}\Battle.net"), "DisplayName", "Battle.net")
+        .set(&format!(r"{UNINSTALL}\Battle.net"), "Publisher", "Blizzard Entertainment");
+    let result = BattleNetReader.read(&context(&t, reg));
+    assert_eq!(result.installs.len(), 1);
+    assert_eq!(result.installs[0].title, "Overwatch");
+    assert!(result.installs[0].uninstall_command.is_some());
+}

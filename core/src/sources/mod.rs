@@ -2,7 +2,11 @@
 //! folders beyond checking they exist.
 
 pub mod epic;
+pub mod file_stores;
+pub mod installed_apps;
+pub mod registry_stores;
 pub mod steam;
+pub mod uninstall;
 
 use crate::model::{SourceKind, SourceResult};
 use crate::platform::SystemContext;
@@ -12,9 +16,24 @@ pub trait SourceReader: Send + Sync {
     fn read(&self, ctx: &SystemContext) -> SourceResult;
 }
 
-/// Every reader ported so far. (The rest of the launchers arrive in the next stage of the Rust port.)
+/// Every launcher reader, in the order the UI lists them.
 pub fn all() -> Vec<Box<dyn SourceReader>> {
-    vec![Box::new(steam::SteamReader), Box::new(epic::EpicReader)]
+    use registry_stores::*;
+    vec![
+        Box::new(steam::SteamReader),
+        Box::new(epic::EpicReader),
+        Box::new(GogReader),
+        Box::new(EaReader),
+        Box::new(UbisoftReader),
+        Box::new(RockstarReader),
+        Box::new(BattleNetReader),
+        Box::new(RiotReader),
+        Box::new(HoYoPlayReader),
+        Box::new(file_stores::XboxReader),
+        Box::new(file_stores::ItchReader),
+        Box::new(file_stores::AmazonReader),
+        Box::new(installed_apps::InstalledAppsReader),
+    ]
 }
 
 /// Runs every reader in parallel; a reader that panics is reported as unreadable instead of breaking the rest.

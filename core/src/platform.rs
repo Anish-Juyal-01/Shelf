@@ -93,6 +93,24 @@ impl RegistryView for WindowsRegistry {
     }
 }
 
+pub const MB: u64 = 1024 * 1024;
+pub const GB: u64 = 1024 * MB;
+
+/// "48.6 GB", "709 MB", "12 KB", "512 B" (whole GB from 100 GB up).
+pub fn format_bytes(bytes: i64) -> String {
+    let b = bytes as f64;
+    let (mb, gb) = (MB as f64, GB as f64);
+    if b >= gb {
+        if b >= 100.0 * gb { format!("{:.0} GB", b / gb) } else { format!("{:.1} GB", b / gb) }
+    } else if b >= mb {
+        format!("{:.0} MB", b / mb)
+    } else if b >= 1024.0 {
+        format!("{:.0} KB", b / 1024.0)
+    } else {
+        format!("{bytes} B")
+    }
+}
+
 /// Full path with backslashes, no quotes and no trailing separator (except on a drive root).
 pub fn normalize(path: &str) -> String {
     let p = path.trim().trim_matches('"').replace('/', "\\");
