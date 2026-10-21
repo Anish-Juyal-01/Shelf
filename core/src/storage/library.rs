@@ -473,6 +473,13 @@ impl LibraryStore {
         Ok(list)
     }
 
+    pub fn ignored_keys(&self) -> rusqlite::Result<std::collections::HashSet<String>> {
+        let c = self.db.connect()?;
+        let mut q = c.prepare("SELECT key FROM ignored")?;
+        let rows = q.query_map([], |r| r.get(0))?;
+        rows.collect()
+    }
+
     pub fn pending_detections(&self) -> rusqlite::Result<Vec<DetectionRow>> {
         let c = self.db.connect()?;
         let mut q = c.prepare(&format!("{DETECTION_SELECT} WHERE state = 'pending' ORDER BY origin = 'runtime' DESC, confidence DESC"))?;

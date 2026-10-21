@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
@@ -13,6 +13,7 @@ use shelf_core::launching;
 use shelf_core::library::Refresher;
 use shelf_core::metadata::{system_clock, UreqHttp, WebArt, WebArtSync};
 use shelf_core::platform::{drive_info, iso_ms, is_same_or_inside, normalize, now_ms, path_key, DriveInfo, SystemContext};
+use shelf_core::scanning::classifier::{evaluate_path, ClassifierOptions};
 use shelf_core::scanning::scanner::{Leftover, LeftoverKind, ScanEvent};
 use shelf_core::scanning::suggest::suggest_roots;
 use shelf_core::storage::art_cache::ArtCache;
@@ -20,7 +21,15 @@ use shelf_core::storage::db::ShelfDb;
 use shelf_core::storage::library::{GameRow, InstallRow, LibraryStore, SyncResult};
 use shelf_core::storage::sessions::{SessionRow, SessionStore};
 use shelf_core::storage::{Settings, ShelfPaths};
-use tauri::{AppHandle, Emitter};
+use shelf_core::watching::system::{exe_icon_png, PdhGpu, Win32Foreground, Win32Processes};
+use shelf_core::watching::tracker::SessionEventKind;
+use shelf_core::watching::watcher::{Probes, ShelfWatcher, WatcherEvent, WatcherOptions};
+use shelf_core::watching::SystemClock;
+use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_notification::NotificationExt;
+
+use crate::shell::Startup;
+use crate::tray::Tray;
 
 const PALETTES: &[&str] = &["sunset", "aurora", "neon", "dune", "deepsea", "sakura", "onyx", "ember", "volt", "cobalt", "crimson", "gold"];
 
@@ -66,6 +75,10 @@ pub struct Host {
     ui_ready: AtomicBool,
     /// Set when the app is closing: background work stops.
     pub closing: Arc<AtomicBool>,
+    watcher: OnceLock<ShelfWatcher>,
+    startup: Startup,
+    pub tray: OnceLock<Tray>,
+    told_about_tray: AtomicBool,
 }
 
 impl Host {
@@ -74,7 +87,7 @@ impl Host {
         let db = ShelfDb::open_in(&paths).map_err(|e| format!("Couldn't open Shelf's database ({}): {e}", paths.db_file().display()))?;
         let library = LibraryStore::new(db.clone());
         let ctx = SystemContext::real();
-        Ok(Arc::new(Self {
+        let host = Arc::new(Self {
             app,
             settings: Mutex::new(Settings::load(&paths)),
             art: ArtCache::new(&paths),
@@ -92,7 +105,41 @@ impl Host {
             open_game: Mutex::new(None),
             ui_ready: AtomicBool::new(false),
             closing: Arc::new(AtomicBool::new(false)),
-        }))
+            watcher: OnceLock::new(),
+            startup: Startup::new(),
+            tray: OnceLock::new(),
+            told_about_tray: AtomicBool::new(false),
+        });
+        let weak: Weak<Host> = Arc::downgrade(&host);
+        let probes = Probes {
+            processes: Box::new(Win32Processes::default()),
+            foreground: Some(Box::new(Win32Foreground)),
+            gpu: Some(Box::new(PdhGpu::default())),
+        };
+        let watcher = ShelfWatcher::new(
+            host.library.clone(),
+            host.sessions.clone(),
+            probes,
+            Arc::new(SystemClock),
+            WatcherOptions::default(),
+            Box::new(move |e| {
+                if let Some(h) = weak.upgrade() {
+                    h.on_watcher(e);
+                }
+            }),
+        );
+        let _ = host.watcher.set(watcher);
+        Ok(host)
+    }
+
+    fn watcher(&self) -> &ShelfWatcher {
+        self.watcher.get().expect("watcher is created with the host")
+    }
+
+    /// Scan folders to watch for new downloads, when that's on.
+    fn watch_roots(&self) -> Option<Vec<String>> {
+        let s = self.settings.lock().unwrap();
+        s.watch_folders.then(|| s.scan_roots.clone())
     }
 
     pub fn app(&self) -> &AppHandle {
@@ -100,7 +147,116 @@ impl Host {
     }
 
     pub fn start(self: &Arc<Self>) {
+        let w = self.watcher();
+        w.set_runtime_detection(self.settings.lock().unwrap().runtime_detection);
+        if let Err(e) = w.start(self.watch_roots().as_deref(), true) {
+            self.notice("error", format!("Playtime tracking couldn't start: {e}"));
+        }
         self.refresh_all(true);
+    }
+
+    /// Shelf is exiting: open sessions are saved as ended now, background work stops.
+    pub fn shutdown(&self) {
+        if self.closing.swap(true, Ordering::AcqRel) {
+            return;
+        }
+        self.cancel_scan();
+        self.watcher().stop();
+    }
+
+    pub fn quit(&self) {
+        self.shutdown();
+        self.app.exit(0);
+    }
+
+    /// The window's close button: hide to the tray (the default) or quit. Returns true when the close should go ahead.
+    pub fn close_requested(&self) -> bool {
+        if self.closing.load(Ordering::Relaxed) || !self.settings.lock().unwrap().close_to_tray {
+            self.shutdown();
+            return true;
+        }
+        if let Some(w) = self.app.get_webview_window("main") {
+            let _ = w.hide();
+        }
+        if !self.told_about_tray.swap(true, Ordering::AcqRel) {
+            self.toast("Shelf is still running", "It keeps counting your play time from the notification area.");
+        }
+        false
+    }
+
+    /// A Windows notification, only when the window isn't in front (otherwise the in-app notice is enough).
+    fn toast(&self, title: &str, text: &str) {
+        let in_front = self
+            .app
+            .get_webview_window("main")
+            .is_some_and(|w| w.is_visible().unwrap_or(false) && w.is_focused().unwrap_or(false) && !w.is_minimized().unwrap_or(false));
+        if !in_front {
+            let _ = self.app.notification().builder().title(title).body(text).show();
+        }
+    }
+
+    fn update_tray(&self) {
+        if let Some(tray) = self.tray.get() {
+            let titles: Vec<String> = self
+                .watcher()
+                .playing()
+                .iter()
+                .map(|(id, _)| self.library.game_title(*id).ok().flatten().unwrap_or_else(|| "a game".into()))
+                .collect();
+            tray.set_playing(&titles);
+        }
+    }
+
+    fn on_watcher(self: &Arc<Self>, e: WatcherEvent) {
+        match e {
+            WatcherEvent::Session(s, title) => {
+                if s.kind == SessionEventKind::Stopped {
+                    let played = duration(s.duration_ms().unwrap_or(0) / 1000);
+                    self.notice_to("info", format!("{title}: {played} played"), None, Some(s.game_id));
+                }
+                self.update_tray();
+                self.changed();
+                self.game_changed(s.game_id);
+            }
+            WatcherEvent::Recovered(n) => {
+                self.notice("info", format!("Closed {n} session(s) left open by a crash or power loss, at their last heartbeat"));
+            }
+            WatcherEvent::Suggest { title, .. } => {
+                let text = format!("Looks like you're playing {title} — add it?");
+                self.toast("Shelf spotted a game", &text);
+                self.notice_to("info", text, Some("review"), None);
+                self.changed();
+            }
+            WatcherEvent::FoldersSettled(paths) => self.settled(paths),
+            WatcherEvent::RefreshDue => self.refresh_all(false),
+            WatcherEvent::FolderFailed(f) => self.notice("error", format!("Can't watch {f} for new downloads (missing or no access)")),
+            WatcherEvent::Error(m) => self.notice("error", m),
+        }
+    }
+
+    /// New downloads that went quiet: searched on their own, quietly, and announced.
+    fn settled(self: &Arc<Self>, paths: Vec<String>) {
+        let host = self.clone();
+        std::thread::spawn(move || {
+            let mut changed = false;
+            for path in paths {
+                let Ok((_, sync)) = host.refresher.refresh_folder(&path, None, &host.closing) else { continue };
+                let parent = Path::new(&path).parent().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+                for t in &sync.new_games {
+                    let text = format!("New game found in {parent}: {t}");
+                    host.toast("New on your shelf", &text);
+                    host.notice_to("success", text, Some("library"), None);
+                }
+                if sync.new_detections > 0 {
+                    host.notice_to("info", format!("{} new folder(s) in {path} to review", sync.new_detections), Some("review"), None);
+                }
+                changed |= !sync.new_games.is_empty() || sync.new_detections > 0;
+            }
+            if changed {
+                host.watcher().refresh_index();
+                host.changed();
+            }
+        });
     }
 
     // ── Talking to the UI ───────────────────────────────────────────────────────────────────────────
@@ -169,6 +325,7 @@ impl Host {
             let on_event = |e: ScanEvent| host.on_scan_event(e);
             let r = host.refresher.refresh_all(&roots, true, Some(&on_event), cancel).map_err(|e| e.to_string())?;
             *host.leftovers.lock().unwrap() = r.snapshot.leftovers;
+            host.watcher().refresh_index();
             host.changed();
             host.sync_art(cancel);
             host.start_web_art();
@@ -200,6 +357,7 @@ impl Host {
                 l.retain(|x| !is_same_or_inside(&x.path, &path));
                 l.extend(scan.leftovers.iter().cloned());
             }
+            host.watcher().refresh_index();
             host.announce(&sync);
             if let Some(e) = scan.error {
                 return Err(e);
@@ -283,8 +441,8 @@ impl Host {
 
     // ── Art ─────────────────────────────────────────────────────────────────────────────────────────
 
-    /// Copies art that's already on this PC (Steam's library images, Xbox logos) into Shelf's art cache. No network.
-    /// Runs after every refresh; cheap when nothing changed. (Exe icons arrive with stage 4.)
+    /// Copies art that's already on this PC (Steam's library images, Xbox logos, each game's own exe icon) into
+    /// Shelf's art cache. No network. Runs after every refresh; cheap when nothing changed.
     fn sync_art(self: &Arc<Self>, cancel: &AtomicBool) {
         let locator = ArtLocator::new(&self.ctx);
         let Ok(games) = self.library.games(true) else { return };
@@ -293,13 +451,30 @@ impl Host {
             if cancel.load(Ordering::Relaxed) {
                 return;
             }
+            let installs: Vec<InstallRow> = self.library.installs_for(g.id).unwrap_or_default().into_iter().filter(|i| i.is_installed()).collect();
             let mut found = shelf_core::art::FoundArt::new();
-            for i in self.library.installs_for(g.id).unwrap_or_default().iter().filter(|i| i.is_installed()) {
+            for i in &installs {
                 for (k, v) in locator.find(i) {
                     found.entry(k).or_insert(v);
                 }
             }
+            let has_icon = found.contains_key(&ArtKind::Icon);
             changed |= self.art.store(g.id, &found);
+            // Every game gets its native icon (the face Shelf shows for it), Steam games included: the launch exe when
+            // it lives in the game folder, otherwise the best exe the classifier finds there (VALORANT launches through
+            // the Riot Client, whose icon isn't the game's).
+            if !has_icon && !self.art.has(g.id, ArtKind::Icon) {
+                let exe = installs.iter().find_map(|i| {
+                    let exe = match &i.launch_exe {
+                        Some(e) if is_same_or_inside(e, &i.install_path) => Some(e.clone()),
+                        _ => evaluate_path(&i.install_path, &ClassifierOptions::default()).launch_exe,
+                    };
+                    exe.filter(|e| e.to_ascii_lowercase().ends_with(".exe") && Path::new(e).is_file())
+                });
+                if let Some(png) = exe.and_then(|e| exe_icon_png(&e)) {
+                    changed |= self.art.write(g.id, ArtKind::Icon, ".png", &png).is_ok();
+                }
+            }
         }
         if changed {
             self.changed();
@@ -372,7 +547,20 @@ impl Host {
         let games: Vec<Value> = self.library.games(true)?.iter().map(|g| self.game_view(g, by_game.get(&g.id).map(Vec::as_slice).unwrap_or(&[]))).collect();
 
         let since = now - 35 * 24 * 3_600_000;
-        let sessions: Vec<Value> = self.sessions.sessions(None, Some(since), 2000)?.iter().map(session_view).collect();
+        let playing = self.watcher().playing();
+        // A session still running counts up to now, not just its last heartbeat.
+        let sessions: Vec<Value> = self
+            .sessions
+            .sessions(None, Some(since), 2000)?
+            .iter()
+            .map(|s| {
+                let mut v = session_view(s);
+                if s.end.is_none() && playing.iter().any(|p| p.0 == s.game_id) {
+                    v["seconds"] = json!((now - s.start) / 1000);
+                }
+                v
+            })
+            .collect();
 
         let mut games_by_root: HashMap<String, i64> = HashMap::new();
         for i in installs.iter().filter(|i| i.is_installed()) {
@@ -438,11 +626,14 @@ impl Host {
             "drives": drive_views,
             "scan": self.scan.lock().unwrap().view(),
             "settings": self.settings_view(&drives),
-            // Playtime tracking (the watcher) arrives with stage 4.
-            "playing": [],
+            "playing": playing.iter().map(|(id, since)| json!({ "gameId": id, "since": iso_ms(*since) })).collect::<Vec<_>>(),
             "sessions": sessions,
             "gaps": gaps,
-            "watch": { "running": false, "gpuCounters": false, "trackingSince": runs.first().map(|r| iso_ms(r.start)) },
+            "watch": {
+                "running": self.watcher().running(),
+                "gpuCounters": self.watcher().gpu_available(),
+                "trackingSince": runs.first().map(|r| iso_ms(r.start)),
+            },
         }))
     }
 
@@ -458,7 +649,7 @@ impl Host {
             "drives": drives.iter().map(|d| &d.root).collect::<Vec<_>>(),
             "runtimeDetection": s.runtime_detection,
             "watchFolders": s.watch_folders,
-            "startWithWindows": false,
+            "startWithWindows": self.startup.is_enabled(),
             "closeToTray": s.close_to_tray,
             "webArt": s.web_art,
             "hasSteamGridDbKey": s.steam_grid_db_key.as_deref().is_some_and(|k| !k.trim().is_empty()),
@@ -552,6 +743,7 @@ impl Host {
     pub fn accept(self: &Arc<Self>, detection_id: i64, title: Option<&str>) {
         match self.library.accept_detection(detection_id, title, now_ms()) {
             Ok(id) => {
+                self.watcher().refresh_index();
                 let name = self.library.game_title(id).ok().flatten().unwrap_or_default();
                 self.notice_to("success", format!("Added {name} to your shelf"), None, Some(id));
             }
@@ -581,6 +773,7 @@ impl Host {
             }
             match self.library.add_manual(&p, None, now_ms(), true) {
                 Ok(id) => {
+                    self.watcher().refresh_index();
                     let title = self.library.game_title(id).ok().flatten().unwrap_or_default();
                     self.notice_to("success", format!("Added {title} — playtime is tracked from now on"), None, Some(id));
                 }
@@ -603,6 +796,7 @@ impl Host {
             s.scan_roots.push(p.clone());
         }
         self.save_settings();
+        self.watcher().set_watch_folders(self.watch_roots().as_deref());
         self.changed();
         self.scan_once(p);
     }
@@ -610,6 +804,7 @@ impl Host {
     pub fn remove_root(self: &Arc<Self>, path: &str) {
         self.settings.lock().unwrap().scan_roots.retain(|r| path_key(r) != path_key(path));
         self.save_settings();
+        self.watcher().set_watch_folders(self.watch_roots().as_deref());
         self.changed();
     }
 
@@ -639,6 +834,7 @@ impl Host {
             }
             if let Some(v) = flag("runtimeDetection") {
                 s.runtime_detection = v;
+                self.watcher().set_runtime_detection(v);
             }
             if let Some(v) = flag("watchFolders") {
                 s.watch_folders = v;
@@ -647,10 +843,15 @@ impl Host {
                 s.close_to_tray = v;
             }
         }
-        if flag("startWithWindows").is_some() {
-            self.notice("info", "Starting with Windows comes to the Rust build in its next stage.");
+        if let Some(on) = flag("startWithWindows") {
+            if let Err(e) = self.startup.set_enabled(on) {
+                self.notice("error", e);
+            }
         }
         self.save_settings();
+        if flag("watchFolders").is_some() {
+            self.watcher().set_watch_folders(self.watch_roots().as_deref());
+        }
         self.changed();
         if look_again {
             self.start_web_art();
@@ -690,6 +891,17 @@ impl Host {
         if let Err(e) = r {
             self.notice("error", format!("Something went wrong: {e}"));
         }
+    }
+}
+
+/// `1h 05m`, `12 min`, `40s`.
+fn duration(secs: i64) -> String {
+    if secs >= 3600 {
+        format!("{}h {:02}m", secs / 3600, secs % 3600 / 60)
+    } else if secs >= 60 {
+        format!("{} min", secs / 60)
+    } else {
+        format!("{secs}s")
     }
 }
 

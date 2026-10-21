@@ -14,10 +14,12 @@ roxmltree = "0.20"
 rusqlite = { version = "0.40", features = ["bundled"] }
 sha2 = "0.10"
 ureq = "2.12"
+notify = "8"
+png = "0.17"
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.56"
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Gdi", "Win32_System_Diagnostics_ToolHelp", "Win32_System_Threading", "Win32_System_Performance"] }
 
 [dev-dependencies]
 tempfile = "3"

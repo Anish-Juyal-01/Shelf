@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use serde_json::{json, Value};
-use tauri::{Emitter, State, WebviewWindow};
+use tauri::{Emitter, Manager, State, WebviewWindow};
 use tauri_plugin_dialog::DialogExt;
 
 use crate::host::Host;
@@ -93,8 +93,12 @@ fn window_action(window: &WebviewWindow, action: &str) {
             let _ = window.emit("host", json!({ "type": "window", "maximized": !max }));
             r
         }
-        // Closing to the tray arrives with the tray (stage 4); until then both close and quit end the app.
-        "close" | "quit" => window.close(),
+        // Close goes through the window's close request (hide to the tray, or quit, per Settings).
+        "close" => window.close(),
+        "quit" => {
+            window.state::<Arc<Host>>().quit();
+            Ok(())
+        }
         _ => Ok(()),
     };
 }

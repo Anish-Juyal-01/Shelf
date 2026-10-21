@@ -13,3 +13,4 @@ pub mod scanning;
 pub mod sources;
 pub mod storage;
 pub mod vdf;
+pub mod watching;

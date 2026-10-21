@@ -28,12 +28,14 @@ Test it: `cargo test`.
 | 1 | Tauri app, bridge, window controls; model, platform, VDF, Steam + Epic readers | Model, Platform, Vdf, SteamReader, EpicReader | **done** |
 | 2 | Every other reader (GOG, EA, Ubisoft, Rockstar, Battle.net, Riot, HoYoPlay, Xbox, itch, Amazon, installed apps); name cleaner, game matcher, exe/folder classifier, folder scanner + scan cache | Sources, Naming, Dedup, Scanning | **done** |
 | 3 | SQLite library + sessions, settings, art cache and art locator, web art (Steam, SteamGridDB), library refresh, every UI message (launch, uninstall, review, roots…) | Storage, Library, Art, Metadata, Launching, AppHost, UiBridge | **done** |
-| 4 | Watcher (process snapshots, playtime sessions, sleep, runtime detection with GPU counters, folder watching), tray, close-to-tray, start with Windows, single instance, notifications, exe icons | Watching, Tray, Shell | |
+| 4 | Watcher (process snapshots, playtime sessions, sleep, runtime detection with GPU counters, folder watching), tray, close-to-tray, start with Windows, single instance, notifications, exe icons | Watching, Tray, Shell | **done** |
 
 Stage 3 notes: cached art reaches the UI over the `shelf` URI scheme (`http://shelf.localhost/art/<id>/<file>`), and
-files dropped on the window arrive through Tauri's drag-drop event with real paths. Left for stage 4: exe icons for loose
-games (the C# IconExtractor), and runtime detection must skip ordinary apps from `WindowsApps` — the C# watcher
-suggested Claude and WhatsApp as games after they ran fullscreen.
+files dropped on the window arrive through Tauri's drag-drop event with real paths. 
+
+Stage 4 notes: runtime detection now skips programs under `WindowsApps` (the C# watcher had suggested Claude and
+WhatsApp as games). Sleep is caught by the gap between polls rather than power events, so a session ends at the last
+poll before the PC slept. "Start with Windows" creates the same per-user sign-in task (`Shelf`) through `schtasks`.
 | 5 | CLI on shelf-core, installer (NSIS, per-user), build/install scripts, README, remove the C# projects | Shelf.Cli, scripts | |
 
 Each stage ports the C# tests for what it moves, so behaviour is checked the same way it was before.
