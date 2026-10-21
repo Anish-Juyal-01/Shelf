@@ -96,10 +96,11 @@ function Section({ view }: { view: View }) {
   }
 }
 
-/** Drop an .exe anywhere on the window to add it. The host gets real file paths via WebView2. */
+/** Drop an .exe anywhere on the window to add it. The host gets real file paths (from WebView2 or Tauri). */
 function DropOverlay() {
   const [active, setActive] = useState(false);
   useEffect(() => {
+    if (bridge.watchDrops) return bridge.watchDrops(setActive);
     let depth = 0;
     const hasFiles = (e: DragEvent) => e.dataTransfer?.types.includes("Files");
     const enter = (e: DragEvent) => {

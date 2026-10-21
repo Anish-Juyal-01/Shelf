@@ -63,6 +63,20 @@ impl SourceKind {
             _ => 4,
         }
     }
+
+    pub const ALL: [SourceKind; 16] = [
+        Self::Steam, Self::Epic, Self::Gog, Self::Ea, Self::Ubisoft, Self::Rockstar, Self::Xbox, Self::BattleNet, Self::Itch,
+        Self::Amazon, Self::Riot, Self::HoYoPlay, Self::InstalledApps, Self::Folder, Self::Manual, Self::Runtime,
+    ];
+
+    /// The name stored in the database (`Steam`, `BattleNet`…), the same one the C# build wrote.
+    pub fn db_name(self) -> String {
+        format!("{self:?}")
+    }
+
+    pub fn from_db(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|k| k.db_name() == name)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -142,6 +156,12 @@ pub enum SourceState {
     Partial,
     /// The launcher is here but its data couldn't be read at all.
     Unreadable,
+}
+
+impl SourceState {
+    pub fn from_db(name: &str) -> Option<Self> {
+        [Self::Ok, Self::NotInstalled, Self::Partial, Self::Unreadable].into_iter().find(|s| format!("{s:?}") == name)
+    }
 }
 
 /// What one store reader found, plus an honest sentence for the UI.

@@ -43,13 +43,13 @@ impl SystemContext {
     }
 }
 
-/// Drive roots C:–Z: that can be listed. (Removable and network drives are filtered out in a later stage, with
-/// GetDriveTypeW; the readers only look for launcher folders on each, so a USB stick does no harm meanwhile.)
+/// Fixed drive roots C:–Z: (no USB sticks, network or optical drives).
 #[cfg(windows)]
 fn fixed_drives() -> Vec<PathBuf> {
     (b'C'..=b'Z')
-        .map(|c| PathBuf::from(format!("{}:\\", c as char)))
-        .filter(|p| std::fs::read_dir(p).is_ok())
+        .map(|c| format!("{}:\\", c as char))
+        .filter(|p| is_fixed(p) && std::fs::read_dir(p).is_ok())
+        .map(PathBuf::from)
         .collect()
 }
 
@@ -164,9 +164,132 @@ pub fn exe_from_command(command: &str) -> Option<String> {
     Some(c.split(',').next().unwrap_or(c).to_string())
 }
 
+// ── Time ────────────────────────────────────────────────────────────────────────────────────────────────
+
+/// Now as unix milliseconds (UTC), the storage format for every timestamp in the database.
+pub fn now_ms() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
+}
+
+/// Unix milliseconds → `2026-10-21T12:34:56.789Z` (UTC), the format the UI and the C# build use.
+pub fn iso_ms(ms: i64) -> String {
+    let secs = ms.div_euclid(1000);
+    let days = secs.div_euclid(86_400);
+    let rem = secs.rem_euclid(86_400);
+    // Civil-from-days (Howard Hinnant's algorithm).
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + i64::from(m <= 2);
+    format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}.{:03}Z", rem / 3600, rem % 3600 / 60, rem % 60, ms.rem_euclid(1000))
+}
+
+/// `2026-10-21T12:34:56[.fff…][Z]` (treated as UTC) → unix milliseconds.
+pub fn parse_iso(s: &str) -> Option<i64> {
+    let b = s.as_bytes();
+    let num = |r: std::ops::Range<usize>| s.get(r).and_then(|x| x.parse::<i64>().ok());
+    if b.len() < 19 || b[4] != b'-' || b[7] != b'-' || b[10] != b'T' {
+        return None;
+    }
+    let (y, m, d) = (num(0..4)?, num(5..7)?, num(8..10)?);
+    let (hh, mm, ss) = (num(11..13)?, num(14..16)?, num(17..19)?);
+    let frac = s.get(19..).and_then(|r| r.strip_prefix('.')).map(|r| r.chars().take_while(char::is_ascii_digit).collect::<String>());
+    let millis = frac.map(|f| format!("{f:0<3}")[..3].parse::<i64>().unwrap_or(0)).unwrap_or(0);
+    // Days-from-civil.
+    let y2 = if m <= 2 { y - 1 } else { y };
+    let era = y2.div_euclid(400);
+    let yoe = y2 - era * 400;
+    let mp = (m + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    let days = era * 146_097 + doe - 719_468;
+    Some(((days * 86_400) + hh * 3600 + mm * 60 + ss) * 1000 + millis)
+}
+
+// ── Drives and the shell ────────────────────────────────────────────────────────────────────────────────
+
+/// A fixed drive's label and space.
+#[derive(Debug, Clone)]
+pub struct DriveInfo {
+    pub root: String,
+    pub label: String,
+    pub total_bytes: i64,
+    pub free_bytes: i64,
+}
+
+#[cfg(windows)]
+fn wide(s: &str) -> Vec<u16> {
+    s.encode_utf16().chain(std::iter::once(0)).collect()
+}
+
+#[cfg(windows)]
+fn is_fixed(root: &str) -> bool {
+    const DRIVE_FIXED: u32 = 3;
+    unsafe { windows_sys::Win32::Storage::FileSystem::GetDriveTypeW(wide(root).as_ptr()) == DRIVE_FIXED }
+}
+
+/// Space and label of a fixed drive (`C:\`), or `None` for anything else.
+#[cfg(windows)]
+pub fn drive_info(root: &str) -> Option<DriveInfo> {
+    use windows_sys::Win32::Storage::FileSystem::{GetDiskFreeSpaceExW, GetVolumeInformationW};
+    if !is_fixed(root) {
+        return None;
+    }
+    let w = wide(root);
+    let (mut free, mut total, mut total_free) = (0u64, 0u64, 0u64);
+    if unsafe { GetDiskFreeSpaceExW(w.as_ptr(), &mut free, &mut total, &mut total_free) } == 0 {
+        return None;
+    }
+    let mut name = [0u16; 261];
+    let ok = unsafe {
+        GetVolumeInformationW(w.as_ptr(), name.as_mut_ptr(), name.len() as u32, std::ptr::null_mut(), std::ptr::null_mut(), std::ptr::null_mut(), std::ptr::null_mut(), 0)
+    };
+    let label = if ok != 0 { String::from_utf16_lossy(&name[..name.iter().position(|&c| c == 0).unwrap_or(0)]) } else { String::new() };
+    Some(DriveInfo {
+        root: root.to_string(),
+        label: if label.trim().is_empty() { "Local disk".into() } else { label },
+        total_bytes: total as i64,
+        free_bytes: free as i64,
+    })
+}
+
+/// Hands a URI, file or folder to Windows (ShellExecute "open"), like double-clicking it.
+#[cfg(windows)]
+pub fn shell_open(target: &str, args: Option<&str>, dir: Option<&str>) -> Result<(), String> {
+    use windows_sys::Win32::UI::Shell::ShellExecuteW;
+    const SW_SHOWNORMAL: i32 = 1;
+    let (t, a, d, op) = (wide(target), args.map(wide), dir.map(wide), wide("open"));
+    let ptr = |v: &Option<Vec<u16>>| v.as_ref().map_or(std::ptr::null(), |v| v.as_ptr());
+    let r = unsafe { ShellExecuteW(std::ptr::null_mut(), op.as_ptr(), t.as_ptr(), ptr(&a), ptr(&d), SW_SHOWNORMAL) };
+    if r as isize > 32 {
+        Ok(())
+    } else {
+        Err(match r as isize {
+            2 | 3 => "the file wasn't found".into(),
+            5 => "access was denied".into(),
+            31 => "nothing on this PC opens that".into(),
+            n => format!("Windows error {n}"),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn iso_dates_round_trip() {
+        assert_eq!(iso_ms(0), "1970-01-01T00:00:00.000Z");
+        assert_eq!(iso_ms(1_710_000_000_123), "2024-03-09T16:00:00.123Z");
+        assert_eq!(parse_iso("2024-03-09T16:00:00.1234567Z"), Some(1_710_000_000_123));
+        assert_eq!(parse_iso("2025-01-01T00:00:00Z"), Some(1_735_689_600_000));
+        assert_eq!(parse_iso("nope"), None);
+    }
 
     #[test]
     fn exe_from_command_strips_args_and_icons() {

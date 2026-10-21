@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { HostMessage, UiMessage } from "./protocol";
 import { createPreviewBridge } from "./previewBridge";
@@ -11,6 +12,11 @@ export interface Bridge {
   /** Sends files dropped on the window; the host receives their real paths. */
   sendFiles(files: FileList): void;
   subscribe(handler: (message: HostMessage) => void): () => void;
+  /**
+   * Hosts that see file drops themselves (Tauri) report hover state here and send the paths on drop; the window's
+   * own drag events don't fire there. Returns an unsubscribe function.
+   */
+  watchDrops?(onHover: (active: boolean) => void): () => void;
 }
 
 interface WebView2 {
@@ -53,8 +59,17 @@ function createTauriBridge(): Bridge {
       }
       void invoke("ui_message", { message });
     },
-    // Dropped files arrive through Tauri's own drag-drop event once that's ported; until then the host says so.
-    sendFiles: () => void invoke("ui_message", { message: { type: "dropFiles" } satisfies UiMessage }),
+    // Drops come through watchDrops (Tauri's own drag-drop event, with real paths).
+    sendFiles: () => {},
+    watchDrops(onHover) {
+      const off = getCurrentWebview().onDragDropEvent((e) => {
+        if (e.payload.type === "enter" || e.payload.type === "over") onHover(true);
+        else onHover(false);
+        if (e.payload.type === "drop" && e.payload.paths.length)
+          void invoke("ui_message", { message: { type: "dropPaths", paths: e.payload.paths } satisfies UiMessage });
+      });
+      return () => void off.then((f) => f());
+    },
     subscribe(handler) {
       const off = listen<HostMessage>("host", (e) => handler(e.payload));
       return () => void off.then((f) => f());
