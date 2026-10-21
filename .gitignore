@@ -14,3 +14,7 @@ ui/dist-site/
 
 .vercel
 .env*
+
+# Rust / Tauri
+/target/
+src-tauri/gen/
