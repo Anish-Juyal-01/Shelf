@@ -280,7 +280,7 @@ export function Journey({ games, faller, line, download, github }: { games: Game
             ) : (
               <div>
                 <h2 className="font-display text-[clamp(34px,3.6vw,56px)] leading-[0.95]">{landed ? "On your shelf. Every one." : "Last stop."}</h2>
-                <p className="typed mt-3 text-[12px] text-ink-3">Windows 10 &amp; 11 · 63 MB · unzip and run · not code-signed yet, so Windows may ask once</p>
+                <p className="typed mt-3 text-[12px] text-ink-3">Windows 10 &amp; 11 · 4 MB · installs in seconds, no admin · not code-signed yet, so Windows may ask once</p>
               </div>
             )}
             <div className="flex flex-wrap items-center gap-3">

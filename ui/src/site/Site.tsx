@@ -9,8 +9,8 @@ import { savedSiteTheme, switchSiteTheme } from "./siteTheme";
 // The Shelf website: a line that writes itself next to a bookcase, then one journey down the page (see Journey.tsx)
 // that ends with the newest game landing in the wheel.
 
-/** The newest release's app zip (the asset keeps the same name in every release, so this link never goes stale). */
-const DOWNLOAD_URL = "https://github.com/Anish-Juyal-01/Shelf/releases/latest/download/Shelf-win-x64.zip";
+/** The newest release's installer (the asset keeps the same name in every release, so this link never goes stale). */
+const DOWNLOAD_URL = "https://github.com/Anish-Juyal-01/Shelf/releases/latest/download/Shelf-setup.exe";
 const PROFILE_URL = "https://github.com/Anish-Juyal-01";
 const REPO_URL = "https://github.com/Anish-Juyal-01/Shelf";
 

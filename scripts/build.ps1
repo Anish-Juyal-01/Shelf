@@ -6,7 +6,8 @@
   1. Installs UI dependencies (if needed) and runs the UI unit tests (Vitest).
   2. Runs the Rust tests (cargo test).
   3. Builds shelf-cli, then the app and its per-user installer with Tauri (the UI is built into the app).
-  4. Copies the results to ./dist: Shelf_<version>_x64-setup.exe, Shelf.exe and shelf-cli.exe.
+  4. Copies the results to ./dist: Shelf_<version>_x64-setup.exe (and the same file as Shelf-setup.exe, the name the
+     website links to), Shelf.exe and shelf-cli.exe.
 
 .PARAMETER SkipTests
   Skip both test suites.
@@ -51,6 +52,8 @@ if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 New-Item -ItemType Directory $out | Out-Null
 $setup = Get-ChildItem target\release\bundle\nsis\*-setup.exe | Sort-Object LastWriteTime | Select-Object -Last 1
 Copy-Item $setup.FullName $out
+# The same installer under a name that never changes: the website links to releases/latest/download/Shelf-setup.exe.
+Copy-Item $setup.FullName (Join-Path $out "Shelf-setup.exe")
 Copy-Item target\release\Shelf.exe $out
 Copy-Item target\release\shelf-cli.exe $out
 
