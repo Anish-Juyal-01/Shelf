@@ -65,7 +65,13 @@ pub struct RuntimeDetector {
     since: i64,
     saw_fullscreen: bool,
     peak_gpu: f64,
+    /// GPU readings during this streak, and whether any was below the "playing" threshold.
+    gpu_samples: usize,
+    gpu_dipped: bool,
 }
+
+/// GPU readings needed (one per poll) before "busy the whole time" means anything.
+const STRONG_GPU_SAMPLES: usize = 6;
 
 impl RuntimeDetector {
     pub fn new(options: DetectorOptions) -> Self {
@@ -95,22 +101,39 @@ impl RuntimeDetector {
             self.since = now;
             self.saw_fullscreen = false;
             self.peak_gpu = 0.0;
+            self.gpu_samples = 0;
+            self.gpu_dipped = false;
         }
         self.saw_fullscreen |= c.fullscreen;
-        self.peak_gpu = self.peak_gpu.max(c.gpu_3d.unwrap_or(0.0));
+        if let Some(g) = c.gpu_3d {
+            self.peak_gpu = self.peak_gpu.max(g);
+            self.gpu_samples += 1;
+            self.gpu_dipped |= g < self.o.gpu_threshold;
+        }
         if now - self.since < self.o.sustain_ms || !self.suggested.insert(c.exe_path.to_lowercase()) {
             return None;
         }
         Some(c.exe_path.clone())
     }
 
+    /// The 3D engine was busy at every reading of the streak (and there were enough readings to say so). On its own,
+    /// that's enough to ask; anything weaker also needs game evidence in the program's folder.
+    pub fn strong_gpu(&self) -> bool {
+        self.gpu_samples >= STRONG_GPU_SAMPLES && !self.gpu_dipped
+    }
+
     /// Why the last suggestion was made, for the Review list.
     pub fn last_signals(&self) -> Vec<String> {
         let secs = self.o.sustain_ms / 1000;
-        vec![
-            if self.saw_fullscreen { format!("Ran fullscreen for {secs}s+") } else { format!("Used the GPU for {secs}s+ (peak {:.0}%)", self.peak_gpu) },
-            "Seen running, not found by any launcher or scan".into(),
-        ]
+        let mut signals = Vec::new();
+        if self.saw_fullscreen {
+            signals.push(format!("Ran fullscreen for {secs}s+"));
+        }
+        if self.strong_gpu() {
+            signals.push(format!("Kept the GPU busy for {secs}s+ (peak {:.0}%)", self.peak_gpu));
+        }
+        signals.push("Seen running, not found by any launcher or scan".into());
+        signals
     }
 }
 

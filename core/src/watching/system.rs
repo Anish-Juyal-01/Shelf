@@ -18,7 +18,8 @@ use windows_sys::Win32::System::Performance::{
 };
 use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    DestroyIcon, GetDesktopWindow, GetForegroundWindow, GetIconInfo, GetShellWindow, GetWindowRect, GetWindowThreadProcessId, PrivateExtractIconsW,
+    DestroyIcon, GetDesktopWindow, GetForegroundWindow, GetIconInfo, GetShellWindow, GetWindowLongPtrW, GetWindowRect, GetWindowThreadProcessId, IsZoomed,
+    PrivateExtractIconsW, GWL_STYLE,
     HICON, ICONINFO,
 };
 
@@ -86,9 +87,20 @@ fn query_path(pid: u32) -> Option<String> {
     ok.then(|| String::from_utf16_lossy(&buf[..size as usize]))
 }
 
-/// The foreground window's process, and whether it covers its whole monitor (exclusive fullscreen and borderless
-/// windowed both do).
+/// The foreground window's process, and whether it's fullscreen the way games are (exclusive fullscreen or
+/// borderless): covering the whole monitor *without* being a maximized app window. A maximized window can cover the
+/// monitor too (frameless apps, an auto-hiding taskbar), so maximized windows and windows with a title bar or a
+/// resizable frame don't count.
 pub struct Win32Foreground;
+
+const WS_CAPTION: u32 = 0x00C0_0000;
+const WS_THICKFRAME: u32 = 0x0004_0000;
+
+/// `window` and `monitor` as (left, top, right, bottom).
+pub fn is_game_fullscreen(window: (i32, i32, i32, i32), monitor: (i32, i32, i32, i32), maximized: bool, style: u32) -> bool {
+    let covers = window.0 <= monitor.0 && window.1 <= monitor.1 && window.2 >= monitor.2 && window.3 >= monitor.3;
+    covers && !maximized && style & WS_CAPTION != WS_CAPTION && style & WS_THICKFRAME == 0
+}
 
 impl ForegroundProbe for Win32Foreground {
     fn current(&self) -> Option<ForegroundWindow> {
@@ -110,7 +122,8 @@ impl ForegroundProbe for Win32Foreground {
                 info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
                 if !monitor.is_null() && GetMonitorInfoW(monitor, &mut info) != 0 {
                     let m = info.rcMonitor;
-                    fullscreen = r.left <= m.left && r.top <= m.top && r.right >= m.right && r.bottom >= m.bottom;
+                    let style = GetWindowLongPtrW(hwnd, GWL_STYLE) as u32;
+                    fullscreen = is_game_fullscreen((r.left, r.top, r.right, r.bottom), (m.left, m.top, m.right, m.bottom), IsZoomed(hwnd) != 0, style);
                 }
             }
             Some(ForegroundWindow { pid, fullscreen })
@@ -301,4 +314,27 @@ pub fn exe_icon_png(exe: &str) -> Option<Vec<u8>> {
         writer.write_image_data(&rgba).ok()?;
     }
     Some(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const MONITOR: (i32, i32, i32, i32) = (0, 0, 1920, 1080);
+    const WS_POPUP: u32 = 0x8000_0000;
+    const WS_OVERLAPPEDWINDOW: u32 = 0x00CF_0000;
+
+    #[test]
+    fn only_game_style_windows_count_as_fullscreen() {
+        // Exclusive fullscreen / borderless game: a popup window over the whole monitor.
+        assert!(is_game_fullscreen(MONITOR, MONITOR, false, WS_POPUP));
+        // A maximized app (frameless or with an auto-hiding taskbar) covers the monitor too, but isn't a game.
+        assert!(!is_game_fullscreen((-8, -8, 1928, 1088), MONITOR, true, WS_OVERLAPPEDWINDOW));
+        assert!(!is_game_fullscreen(MONITOR, MONITOR, true, WS_POPUP | WS_THICKFRAME));
+        // A resizable or captioned window sized to the screen by hand.
+        assert!(!is_game_fullscreen(MONITOR, MONITOR, false, WS_POPUP | WS_THICKFRAME));
+        assert!(!is_game_fullscreen(MONITOR, MONITOR, false, WS_OVERLAPPEDWINDOW));
+        // Not covering the monitor at all.
+        assert!(!is_game_fullscreen((0, 0, 1280, 720), MONITOR, false, WS_POPUP));
+    }
 }

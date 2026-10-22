@@ -14,7 +14,7 @@ use super::index::GameIndex;
 use super::tracker::{RunningGame, SessionEvent, SessionTracker, TrackerOptions};
 use super::{Clock, ForegroundProbe, GpuSampler, ProcInfo, ProcessSource};
 use crate::platform::path_key;
-use crate::scanning::classifier::{install_root_for, title_for};
+use crate::scanning::classifier::{evaluate_path, install_root_for, title_for, ClassifierOptions};
 use crate::storage::library::LibraryStore;
 use crate::storage::sessions::SessionStore;
 
@@ -62,6 +62,9 @@ pub enum WatcherEvent {
 }
 
 pub type Sink = Box<dyn Fn(WatcherEvent) + Send + Sync>;
+
+/// Folder classifier score that counts as game evidence for a program seen running (one engine or game-data signal).
+const MIN_FOLDER_EVIDENCE: i32 = 20;
 
 struct State {
     tracker: SessionTracker,
@@ -287,10 +290,21 @@ impl Inner {
         };
         self.emit_sessions(events);
 
-        if let Some((exe, signals)) = suggestion {
-            let title = title_for(&install_root_for(&exe), Some(&exe));
-            if let Some(id) = self.library.add_runtime_detection(&exe, &title, &signals, now)? {
-                (self.sink)(WatcherEvent::Suggest { title, detection_id: id });
+        if let Some((exe, mut signals, strong_gpu)) = suggestion {
+            // Looking like a game for a minute isn't enough on its own: plenty of apps go fullscreen. Ask only when
+            // the program's folder shows game evidence (engine, game data, middleware) or the 3D engine was busy the
+            // whole time.
+            let root = install_root_for(&exe);
+            let folder = evaluate_path(&root, &ClassifierOptions::default());
+            let evidence = folder.score >= MIN_FOLDER_EVIDENCE;
+            if evidence || strong_gpu {
+                if evidence {
+                    signals.extend(folder.signals.iter().filter(|s| s.starts_with('+')).take(3).map(|s| format!("Its folder: {}", &s[s.find(' ').map_or(0, |i| i + 1)..])));
+                }
+                let title = title_for(&root, Some(&exe));
+                if let Some(id) = self.library.add_runtime_detection(&exe, &title, &signals, now)? {
+                    (self.sink)(WatcherEvent::Suggest { title, detection_id: id });
+                }
             }
         }
 
@@ -305,7 +319,8 @@ impl Inner {
         Ok(())
     }
 
-    fn check_foreground(&self, s: &mut State, procs: &[ProcInfo], running: &[RunningGame], now: i64) -> Option<(String, Vec<String>)> {
+    /// The exe that looked like a game for a minute, why, and whether the GPU alone makes the case.
+    fn check_foreground(&self, s: &mut State, procs: &[ProcInfo], running: &[RunningGame], now: i64) -> Option<(String, Vec<String>, bool)> {
         let mut candidate = None;
         if let Some(w) = s.foreground.as_ref().and_then(|f| f.current()) {
             if !running.iter().any(|r| r.pid == w.pid) {
@@ -313,12 +328,13 @@ impl Inner {
                 if let Some(path) = path.filter(|p| {
                     !is_excluded(p) && !s.ignored.contains(&path_key(p)) && !s.ignored.contains(&path_key(&install_root_for(p)))
                 }) {
-                    let gpu = if w.fullscreen { None } else { s.gpu.as_mut().and_then(|g| g.sample(w.pid)) };
+                    // Sampled for fullscreen windows too: fullscreen with an idle GPU is a video or an editor.
+                    let gpu = s.gpu.as_mut().and_then(|g| g.sample(w.pid));
                     candidate = Some(RuntimeCandidate { pid: w.pid, exe_path: path, fullscreen: w.fullscreen, gpu_3d: gpu });
                 }
             }
         }
         let exe = s.detector.observe(candidate.as_ref(), now)?;
-        Some((exe, s.detector.last_signals()))
+        Some((exe, s.detector.last_signals(), s.detector.strong_gpu()))
     }
 }

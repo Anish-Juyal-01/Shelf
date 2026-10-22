@@ -206,15 +206,17 @@ impl ForegroundProbe for FakeForeground {
     }
 }
 
-struct NoGpu;
+/// 3D-engine use the fake GPU reports for every process (`None`: no counters on this PC).
+#[derive(Clone, Default)]
+struct FakeGpu(Arc<Mutex<Option<f64>>>);
 
-impl GpuSampler for NoGpu {
+impl GpuSampler for FakeGpu {
     fn sample(&mut self, _: u32) -> Option<f64> {
-        None
+        *self.0.lock().unwrap()
     }
 
     fn available(&self) -> bool {
-        false
+        self.0.lock().unwrap().is_some()
     }
 }
 
@@ -224,6 +226,7 @@ struct Rig {
     clock: Arc<FakeClock>,
     procs: FakeProcesses,
     fg: FakeForeground,
+    gpu: FakeGpu,
     events: Arc<Mutex<Vec<WatcherEvent>>>,
     w: ShelfWatcher,
 }
@@ -234,13 +237,13 @@ impl Rig {
         let hades = games::unity(&t.tree, "Games/Hades");
         t.add(SourceKind::Steam, "Hades", &hades);
         let clock = Arc::new(FakeClock::at(T0));
-        let (procs, fg) = (FakeProcesses::default(), FakeForeground::default());
+        let (procs, fg, gpu) = (FakeProcesses::default(), FakeForeground::default(), FakeGpu::default());
         let events = Arc::new(Mutex::new(Vec::new()));
         let sink_events = events.clone();
-        let probes = Probes { processes: Box::new(procs.clone()), foreground: Some(Box::new(fg.clone())), gpu: Some(Box::new(NoGpu)) };
+        let probes = Probes { processes: Box::new(procs.clone()), foreground: Some(Box::new(fg.clone())), gpu: Some(Box::new(gpu.clone())) };
         let options = WatcherOptions { watch_folders: false, ..Default::default() };
         let w = ShelfWatcher::new(t.library.clone(), t.sessions.clone(), probes, clock.clone(), options, Box::new(move |e| sink_events.lock().unwrap().push(e)));
-        Self { t, hades, clock, procs, fg, events, w }
+        Self { t, hades, clock, procs, fg, gpu, events, w }
     }
 
     fn run(&self, ms: i64) {
@@ -254,6 +257,24 @@ impl Rig {
     fn proc(&self, pid: u32, path: String) {
         let name = path.rsplit('\\').next().unwrap().to_string();
         self.procs.0.lock().unwrap().push(ProcInfo { pid, name, path: Some(path) });
+    }
+
+    /// Titles Shelf asked about ("Looks like you're playing X").
+    fn suggestions(&self) -> Vec<String> {
+        self.events
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|e| if let WatcherEvent::Suggest { title, .. } = e { Some(title.clone()) } else { None })
+            .collect()
+    }
+
+    /// `exe` in front for `ms`, fullscreen or not, while the GPU reports `gpu`.
+    fn in_front(&self, pid: u32, exe: String, fullscreen: bool, gpu: Option<f64>, ms: i64) {
+        self.proc(pid, exe);
+        *self.fg.0.lock().unwrap() = Some(ForegroundWindow { pid, fullscreen });
+        *self.gpu.0.lock().unwrap() = gpu;
+        self.run(ms);
     }
 
     fn session_log(&self) -> Vec<String> {
@@ -311,25 +332,17 @@ fn start_recovers_sessions_from_a_crash() {
 }
 
 #[test]
-fn unknown_fullscreen_program_is_suggested_once_and_can_be_accepted() {
+fn unknown_fullscreen_game_is_suggested_once_and_can_be_accepted() {
     let r = Rig::new();
-    let mystery = r.t.tree.file("Stuff/Mystery/mystery.exe", 10);
+    let mystery = format!(r"{}\hollow_knight.exe", games::unity(&r.t.tree, "Stuff/Mystery"));
     r.w.start(None, false).unwrap();
-    r.proc(77, mystery);
-    *r.fg.0.lock().unwrap() = Some(ForegroundWindow { pid: 77, fullscreen: true });
-    r.run(3 * MIN);
+    r.in_front(77, mystery, true, None, 3 * MIN);
 
-    let suggestions: Vec<String> = r
-        .events
-        .lock()
-        .unwrap()
-        .iter()
-        .filter_map(|e| if let WatcherEvent::Suggest { title, .. } = e { Some(title.clone()) } else { None })
-        .collect();
-    assert_eq!(suggestions, ["Mystery"]);
+    assert_eq!(r.suggestions(), ["Mystery"]);
     let d = r.t.library.pending_detections().unwrap();
     assert_eq!(d.len(), 1);
     assert_eq!(d[0].origin, "runtime");
+    assert!(d[0].signals.iter().any(|s| s.contains("Unity engine")), "{:?}", d[0].signals);
 
     let game = r.t.library.accept_detection(d[0].id, None, r.clock.now()).unwrap();
     r.w.refresh_index();
@@ -339,17 +352,43 @@ fn unknown_fullscreen_program_is_suggested_once_and_can_be_accepted() {
 }
 
 #[test]
+fn a_plain_app_in_fullscreen_is_not_a_game() {
+    // What happened with Drift Recorder, Clipchamp and Claude: an app that's just an exe (or a folder Shelf can't
+    // read) filled the screen for a minute while you worked.
+    let r = Rig::new();
+    let app = r.t.tree.file("Apps/Drift Recorder/drift.exe", 600);
+    r.t.tree.file("Apps/Drift Recorder/uninstall.exe", 100);
+    r.w.start(None, false).unwrap();
+    r.in_front(30, app.clone(), true, None, 3 * MIN); // no GPU counters
+    r.in_front(30, app.clone(), true, Some(4.0), 3 * MIN); // idle GPU
+    r.in_front(30, app, false, Some(60.0), 20 * SEC); // a short burst of GPU work
+    r.w.stop();
+    assert!(r.suggestions().is_empty(), "{:?}", r.suggestions());
+    assert!(r.t.library.pending_detections().unwrap().is_empty());
+}
+
+#[test]
+fn a_game_with_no_engine_files_is_caught_by_sustained_gpu_use() {
+    let r = Rig::new();
+    let game = r.t.tree.file("Stuff/Tiny Shooter/shooter.exe", 600);
+    r.w.start(None, false).unwrap();
+    r.in_front(40, game, false, Some(70.0), 2 * MIN);
+    r.w.stop();
+    assert_eq!(r.suggestions(), ["Tiny Shooter"]);
+    let signals = &r.t.library.pending_detections().unwrap()[0].signals;
+    assert!(signals.iter().any(|s| s.starts_with("Kept the GPU busy")), "{signals:?}");
+}
+
+#[test]
 fn rejected_programs_are_not_suggested_again() {
     let r = Rig::new();
-    let tool = format!(r"{}\tool.exe", r.t.tree.dir("Stuff/Tool"));
+    let tool = format!(r"{}\hollow_knight.exe", games::unity(&r.t.tree, "Stuff/Tool"));
     let id = r.t.library.add_runtime_detection(&tool, "Tool", &["x".into()], T0).unwrap().unwrap();
     r.t.library.reject_detection(id, T0).unwrap();
     r.w.start(None, false).unwrap();
-    r.proc(5, tool);
-    *r.fg.0.lock().unwrap() = Some(ForegroundWindow { pid: 5, fullscreen: true });
-    r.run(3 * MIN);
+    r.in_front(5, tool, true, Some(80.0), 3 * MIN);
     r.w.stop();
-    assert!(!r.events.lock().unwrap().iter().any(|e| matches!(e, WatcherEvent::Suggest { .. })));
+    assert!(r.suggestions().is_empty());
 }
 
 #[test]
