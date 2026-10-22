@@ -36,6 +36,15 @@ const seeds: Seed[] = [
   ["F1 22 Champions Edition", ["installedApps"], 0, 380, 9, { installed: false }],
 ];
 
+/** Steam app ids for the sample games that are on Steam, so the preview shows real art like the app does. */
+const STEAM: Record<string, number> = {
+  "Elden Ring": 1245620, "Sekiro Shadows Die Twice GOTY Edition": 814380, "Hollow Knight": 367520, "Baldur's Gate 3": 1086940,
+  "Cyberpunk 2077": 1091500, Hades: 1145360, "Bongo Cat": 3419430, "Red Dead Redemption 2": 1174180, "Stardew Valley": 413150,
+  Celeste: 504230, "Forza Horizon 5": 1551360, "Lies of P Deluxe Edition": 1627720, "Disco Elysium The Final Cut": 632470,
+  Terraria: 105600, "F1 22 Champions Edition": 1692250,
+};
+const steamArt = (title: string, file: string) => (STEAM[title] ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${STEAM[title]}/${file}` : null);
+
 const games: GameView[] = seeds.map(([title, sources, gb, played, hours, extra], i) => {
   const tracked = Math.round(hours * 3600 * 0.35);
   return {
@@ -59,8 +68,8 @@ const games: GameView[] = seeds.map(([title, sources, gb, played, hours, extra],
     canLaunch: true,
     genres: [],
     year: null,
-    coverUrl: null,
-    heroUrl: null,
+    coverUrl: steamArt(title, "library_600x900.jpg"),
+    heroUrl: steamArt(title, "library_hero.jpg"),
     logoUrl: null,
     iconUrl: null,
     ...extra,

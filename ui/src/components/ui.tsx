@@ -6,19 +6,20 @@ import { forwardRef } from "react";
 
 type Tone = "primary" | "quiet" | "danger" | "outline";
 
-export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { tone?: Tone; icon?: ReactNode; small?: boolean }>(
-  function Button({ tone = "outline", icon, small, className, children, ...rest }, ref) {
+/** Pill buttons: solid for the one main action, glass for the rest. */
+export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement> & { tone?: Tone; icon?: ReactNode; small?: boolean; big?: boolean }>(
+  function Button({ tone = "outline", icon, small, big, className, children, ...rest }, ref) {
     return (
       <button
         ref={ref}
         {...rest}
         className={clsx(
-          "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[6px] font-medium transition-[background,color,box-shadow,transform] active:translate-y-px disabled:cursor-default disabled:opacity-45",
-          small ? "h-7 px-2.5 text-[12.5px]" : "h-9 px-3.5 text-[13.5px]",
-          tone === "primary" && "bg-accent text-accent-ink shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_2px_6px_-2px_rgb(0_0_0/0.35)] hover:brightness-110",
-          tone === "outline" && "border border-rule-strong bg-surface text-ink hover:border-ink-3 hover:bg-surface-2",
-          tone === "quiet" && "text-ink-2 hover:bg-sunken/70 hover:text-ink",
-          tone === "danger" && "border border-stamp-red/50 text-stamp-red hover:bg-stamp-red/10",
+          "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full font-medium transition-[background,color,box-shadow,transform,filter] active:scale-[0.98] disabled:cursor-default disabled:opacity-45",
+          small ? "h-8 px-3.5 text-[12.5px]" : big ? "h-12 px-7 text-[15px] font-semibold" : "h-10 px-5 text-[13.5px]",
+          tone === "primary" && "bg-accent text-accent-ink shadow-[0_10px_28px_-10px_rgb(0_0_0/0.55)] hover:brightness-110",
+          tone === "outline" && "glass-flat text-ink hover:bg-[var(--surface-2)]",
+          tone === "quiet" && "text-ink-2 hover:bg-[var(--surface)] hover:text-ink",
+          tone === "danger" && "glass-flat text-stamp-red hover:bg-stamp-red/15",
           className,
         )}
       >
@@ -35,7 +36,7 @@ export function IconButton({ label, children, className, ...rest }: ButtonHTMLAt
       {...rest}
       aria-label={label}
       title={label}
-      className={clsx("inline-flex size-8 cursor-pointer items-center justify-center rounded-[6px] text-ink-3 transition-colors hover:bg-sunken hover:text-ink", className)}
+      className={clsx("inline-flex size-9 cursor-pointer items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-[var(--surface)] hover:text-ink", className)}
     >
       {children}
     </button>
@@ -53,13 +54,13 @@ export function Tag({ children, tone = "ink", tilt = 0, className, size = "sm" }
   return (
     <span
       className={clsx(
-        "stamp inline-block",
-        size === "xs" && "text-[9px]",
-        size === "sm" && "text-[10px]",
-        size === "lg" && "px-2.5 text-[15px] tracking-[0.18em]",
+        "stamp inline-block uppercase",
+        size === "xs" && "text-[9.5px] tracking-[0.1em]",
+        size === "sm" && "text-[10.5px] tracking-[0.1em]",
+        size === "lg" && "px-3 text-[12px] tracking-[0.12em]",
         tone === "ink" && "text-ink-2",
         tone === "red" && "text-stamp-red",
-        tone === "violet" && "text-stamp-violet",
+        tone === "violet" && "text-accent",
         tone === "green" && "text-ok",
         className,
       )}
@@ -76,23 +77,23 @@ export function Chip({ active, onClick, children, count, tone }: { active: boole
       onClick={onClick}
       aria-pressed={active}
       className={clsx(
-        "inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border px-3 text-[12.5px] transition-colors",
+        "inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-[12.5px] font-medium transition-colors",
         active
           ? tone === "red"
-            ? "border-stamp-red bg-stamp-red text-[var(--surface)]"
-            : "border-ink bg-ink text-[var(--surface)]"
-          : "border-rule-strong text-ink-2 hover:border-ink-3 hover:text-ink",
+            ? "bg-stamp-red text-white"
+            : "bg-accent text-accent-ink"
+          : "text-ink-2 hover:bg-[var(--surface)] hover:text-ink",
       )}
     >
       {children}
-      {count !== undefined && <span className={clsx("typed text-[11px]", active ? "opacity-70" : "text-ink-4")}>{count}</span>}
+      {count !== undefined && <span className={clsx("num text-[11.5px]", active ? "opacity-70" : "text-ink-3")}>{count}</span>}
     </button>
   );
 }
 
 export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: { value: T; label: string }[]; onChange(v: T): void; label: string }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-[7px] border border-rule-strong bg-sunken/60 p-0.5">
+    <div role="radiogroup" aria-label={label} className="glass-flat inline-flex rounded-full p-1">
       {options.map((o) => (
         <button
           key={o.value}
@@ -100,8 +101,8 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
           className={clsx(
-            "h-7 cursor-pointer rounded-[5px] px-3 text-[12.5px] transition-colors",
-            value === o.value ? "bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.15)]" : "text-ink-3 hover:text-ink",
+            "h-8 cursor-pointer rounded-full px-4 text-[12.5px] font-medium transition-colors",
+            value === o.value ? "bg-accent text-accent-ink shadow-[0_4px_12px_-4px_rgb(0_0_0/0.4)]" : "text-ink-2 hover:text-ink",
           )}
         >
           {o.label}
@@ -117,9 +118,9 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
       checked={checked}
       onCheckedChange={onChange}
       aria-label={label}
-      className="relative h-[22px] w-[38px] shrink-0 cursor-pointer rounded-full border border-rule-strong bg-sunken transition-colors data-[state=checked]:border-accent data-[state=checked]:bg-accent"
+      className="relative h-[26px] w-[46px] shrink-0 cursor-pointer rounded-full border border-[var(--edge)] bg-[var(--sunken)] transition-colors data-[state=checked]:border-transparent data-[state=checked]:bg-accent"
     >
-      <Switch.Thumb className="block size-4 translate-x-[2px] rounded-full bg-surface shadow-[0_1px_2px_rgb(0_0_0/0.3)] transition-transform data-[state=checked]:translate-x-[18px]" />
+      <Switch.Thumb className="block size-5 translate-x-[2px] rounded-full bg-white shadow-[0_2px_6px_rgb(0_0_0/0.35)] transition-transform data-[state=checked]:translate-x-[22px]" />
     </Switch.Root>
   );
 }
@@ -129,13 +130,13 @@ export function MenuButton({ trigger, items }: { trigger: ReactNode; items: { la
     <Menu.Root>
       <Menu.Trigger asChild>{trigger}</Menu.Trigger>
       <Menu.Portal>
-        <Menu.Content align="end" sideOffset={6} className="paper z-50 min-w-[180px] rounded-[8px] p-1">
+        <Menu.Content align="end" sideOffset={8} className="glass z-50 min-w-[200px] !rounded-[16px] p-1.5">
           {items.map((it) => (
             <Menu.Item
               key={it.label}
               onSelect={it.onSelect}
               className={clsx(
-                "flex h-8 cursor-pointer items-center gap-2.5 rounded-[5px] px-2.5 text-[13px] outline-none data-[highlighted]:bg-sunken",
+                "flex h-9 cursor-pointer items-center gap-2.5 rounded-[10px] px-3 text-[13px] outline-none data-[highlighted]:bg-[var(--surface-2)]",
                 it.danger ? "text-stamp-red" : "text-ink",
               )}
             >
@@ -149,13 +150,13 @@ export function MenuButton({ trigger, items }: { trigger: ReactNode; items: { la
   );
 }
 
-/** Page heading: serif title, typed sub-line. */
+/** Page heading: big, heavy and tight, with a quiet line under it. */
 export function PageHead({ title, sub, children }: { title: string; sub?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-5">
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 pb-7">
       <div className="min-w-0">
-        <h1 className="font-display text-[60px] leading-[0.92] text-ink">{title}</h1>
-        {sub && <p className="typed mt-1.5 text-[12px] text-ink-3">{sub}</p>}
+        <h1 className="font-display text-[56px] leading-[0.95] text-ink">{title}</h1>
+        {sub && <p className="mt-2.5 text-[13px] text-ink-3">{sub}</p>}
       </div>
       {children && <div className="flex items-center gap-2">{children}</div>}
     </div>
@@ -164,19 +165,19 @@ export function PageHead({ title, sub, children }: { title: string; sub?: ReactN
 
 export function SectionTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
-    <div className="mb-3 flex items-baseline justify-between gap-4 border-b border-rule pb-1.5">
-      <h2 className="caps text-ink-2">{children}</h2>
-      {aside && <div className="typed text-[11.5px] text-ink-3">{aside}</div>}
+    <div className="mb-3.5 flex items-baseline justify-between gap-4 px-1">
+      <h2 className="caps text-ink-3">{children}</h2>
+      {aside && <div className="text-[12px] text-ink-3">{aside}</div>}
     </div>
   );
 }
 
 export function Empty({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="slip mx-auto my-10 max-w-[460px] rounded-[4px] px-8 pt-3 pb-7 text-center">
-            <p className="font-display mt-4 text-[22px] leading-[28px] text-ink">{title}</p>
-      {children && <div className="mt-2 text-[13.5px] leading-relaxed text-ink-2">{children}</div>}
-      {action && <div className="mt-5 flex justify-center gap-2">{action}</div>}
+    <div className="glass mx-auto my-10 max-w-[480px] px-8 pt-7 pb-8 text-center">
+      <p className="font-display text-[26px] leading-[1.1] text-ink">{title}</p>
+      {children && <div className="mt-2.5 text-[13.5px] leading-relaxed text-ink-2">{children}</div>}
+      {action && <div className="mt-6 flex justify-center gap-2">{action}</div>}
     </div>
   );
 }

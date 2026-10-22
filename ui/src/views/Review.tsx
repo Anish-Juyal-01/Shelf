@@ -38,7 +38,7 @@ export function Review() {
 function DetectionCard({ d }: { d: DetectionView }) {
   const [title, setTitle] = useState(d.title);
   return (
-    <li className="slip rounded-[3px] px-6 pt-2 pb-5">
+    <li className="glass px-7 pt-3 pb-6">
       <div className="flex h-[38px] items-center justify-between">
         <span className="caps text-ink-3">
           {originLabel[d.origin]} · {relative(d.found)}
@@ -47,12 +47,12 @@ function DetectionCard({ d }: { d: DetectionView }) {
       </div>
       <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-3">
         <div className="min-w-[260px] flex-1">
-          <label className="caps text-ink-4" htmlFor={`t${d.id}`}>Title</label>
+          <label className="caps text-ink-3" htmlFor={`t${d.id}`}>Title</label>
           <input
             id={`t${d.id}`}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="font-display mt-0.5 block h-10 w-full rounded-[4px] border border-transparent bg-transparent px-1 -ml-1 text-[30px] text-ink hover:border-rule focus:border-rule-strong focus:bg-surface focus:outline-none"
+            className="font-display mt-0.5 block h-10 w-full rounded-[4px] border border-transparent bg-transparent px-1 -ml-1 text-[30px] text-ink hover:border-rule focus:border-[var(--edge)] focus:bg-[var(--sunken)] focus:outline-none"
           />
           <p className="typed mt-1 flex items-center gap-1 text-[11.5px] break-all text-ink-3">
             {d.exe ?? d.path}

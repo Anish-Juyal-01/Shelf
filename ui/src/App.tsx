@@ -6,6 +6,7 @@ import { bridge } from "./bridge/bridge";
 import type { View } from "./bridge/protocol";
 import { ResizeEdges, TopBar } from "./components/Chrome";
 import { Loader } from "./components/Loader";
+import { Room } from "./components/Room";
 import { useApp } from "./store/store";
 import { Activity } from "./views/Activity";
 import { GamePage } from "./views/GamePage";
@@ -50,10 +51,11 @@ export default function App() {
   }, [view, gameId]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
+      <Room />
       <TopBar />
       <ResizeEdges />
-      <div className="flex min-h-0 flex-1">
+      <div className="relative z-[1] flex min-h-0 flex-1">
         <main ref={scroller} className="scroll-area relative min-w-0 flex-1">
           {!connected ? (
             <div className="flex h-full items-center justify-center">
@@ -134,12 +136,10 @@ function DropOverlay() {
   }, []);
   if (!active) return null;
   return (
-    <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-bg/80 backdrop-blur-[2px]">
-      <div className="slip rounded-[4px] border-2 border-dashed border-accent px-12 pt-2 pb-8 text-center">
-        <p className="font-display mt-4 text-[34px] leading-none text-ink">
-          Drop a game's <span className="uline [--u:var(--u-yellow)]">.exe</span> here
-        </p>
-        <p className="mt-1 text-[13px] text-ink-2">Shelf works out the game folder and starts tracking it.</p>
+    <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-md">
+      <div className="glass px-14 pt-9 pb-10 text-center outline-2 outline-offset-8 outline-[var(--edge)] outline-dashed">
+        <p className="font-display text-[38px] leading-none text-ink">Drop a game's .exe here</p>
+        <p className="mt-3 text-[13.5px] text-ink-2">Shelf works out the game folder and starts tracking it.</p>
       </div>
     </div>
   );
@@ -161,9 +161,9 @@ function Notices() {
             animate={{ opacity: 1, y: 0, rotate: 0 }}
             exit={{ opacity: 0, x: 24 }}
             transition={{ type: "spring", stiffness: 420, damping: 32 }}
-            className={clsx("paper flex items-start gap-3 rounded-[4px] border-l-[3px] py-2.5 pr-2 pl-3.5",
-              n.tone === "error" ? "border-l-stamp-red" : n.tone === "success" ? "border-l-ok" : "border-l-stamp-violet")}
+            className="glass flex items-center gap-3 !rounded-[18px] py-2.5 pr-2 pl-4"
           >
+            <span className={clsx("size-2 shrink-0 rounded-full", n.tone === "error" ? "bg-stamp-red" : n.tone === "success" ? "bg-ok" : "bg-accent")} />
             <button
               className={clsx("min-w-0 flex-1 text-left text-[13px] text-ink", (n.view || n.gameId) && "cursor-pointer hover:underline")}
               onClick={() => {

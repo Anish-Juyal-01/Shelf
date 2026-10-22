@@ -62,14 +62,15 @@ export function Loader() {
         transition: "clip-path .8s cubic-bezier(.7,0,.2,1)",
       }}
     >
-      <div className="font-display absolute top-6 left-8 text-[30px] leading-none text-ink">
-        Shelf<span className="text-u-red">.</span>
+      <div className="absolute top-6 left-8 flex items-center gap-2.5 text-[20px] font-semibold tracking-[-0.02em] text-ink">
+        <img src="./icon.svg" alt="" className="size-8 rounded-[9px]" />
+        Shelf
       </div>
       <div className="absolute top-5 right-10 flex items-start text-ink">
         <Odometer value={value} />
-        <span className="font-display mt-2 text-[28px]">%</span>
+        <span className="mt-3 text-[26px] font-semibold text-ink-3">%</span>
       </div>
-      <p className="typed absolute right-10 top-[132px] text-[11px] text-ink-3">
+      <p className="caps absolute right-10 top-[132px] text-ink-3">
         {connected ? "library ready" : "reading launchers and folders"}
       </p>
 
@@ -101,16 +102,16 @@ export function Loader() {
             >
               {/* face */}
               <div style={{ backfaceVisibility: "hidden" }}>
-                <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} meta={sourceName[g.sources[0]]} className="rounded-[9px] ring-1 ring-black/10" />
+                <Cover title={g.title} url={g.coverUrl} iconUrl={g.iconUrl} meta={sourceName[g.sources[0]]} className="rounded-[12px] ring-1 ring-white/10" />
               </div>
               {/* back */}
               <div
-                className="absolute inset-0 rounded-[9px] ring-1 ring-black/10"
+                className="absolute inset-0 rounded-[12px] ring-1 ring-white/15"
                 style={{
                   backfaceVisibility: "hidden",
                   transform: "rotateY(180deg)",
-                  background: "repeating-linear-gradient(45deg, var(--u-red) 0 6px, var(--surface) 6px 12px)",
-                  boxShadow: "inset 0 0 0 6px var(--surface)",
+                  background: "radial-gradient(80% 60% at 30% 25%, var(--room-a), transparent 70%), radial-gradient(70% 60% at 75% 80%, var(--room-b), transparent 70%), var(--bg)",
+                  boxShadow: "inset 0 1px 0 rgb(255 255 255 / 0.25)",
                 }}
               />
             </div>

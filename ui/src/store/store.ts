@@ -23,10 +23,13 @@ interface Store {
   detail: GameDetail | null;
   filter: LibraryFilter;
   notices: Notice[];
+  /** The game the library's arc is turned to; it lights the room. */
+  focusId: number | null;
 
   setView(view: View): void;
   openGame(id: number | null): void;
   setFilter(patch: Partial<LibraryFilter>): void;
+  setFocus(id: number | null): void;
   notify(tone: NoticeTone, text: string, extra?: Pick<Notice, "view" | "gameId">): void;
   dismiss(id: number): void;
   receive(m: HostMessage): void;
@@ -44,6 +47,7 @@ export const useApp = create<Store>((set, get) => ({
   detail: null,
   filter: defaultFilter,
   notices: [],
+  focusId: null,
 
   setView: (view) => set({ view, gameId: null, detail: null }),
 
@@ -53,6 +57,8 @@ export const useApp = create<Store>((set, get) => ({
   },
 
   setFilter: (patch) => set({ filter: { ...get().filter, ...patch } }),
+
+  setFocus: (id) => set({ focusId: id }),
 
   notify(tone, text, extra) {
     const id = ++noticeId;

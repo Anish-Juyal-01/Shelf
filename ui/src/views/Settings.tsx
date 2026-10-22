@@ -17,29 +17,15 @@ export function Settings() {
     <div className="mx-auto max-w-[860px] px-8 pt-7 pb-16">
       <PageHead title="Settings" />
 
-      <Section title="Appearance">
-        <ThemePicker value={s.palette} dark={document.documentElement.dataset.theme === "dark"} onChange={(v) => update({ palette: v })} />
-        <div className="h-3" />
-        <Row label="Library hero" hint="Your games on a turning wheel over the clouds, or a ring you stand inside (drag to spin).">
-          <Segmented label="Library hero" value={s.heroStyle} onChange={(v) => update({ heroStyle: v })}
-            options={[{ value: "wheel", label: "Wheel" }, { value: "ring", label: "Ring" }]} />
-        </Row>
-        <Row label="Day or night" hint="System follows Windows' light or dark setting. Every colour theme has both.">
-          <Segmented label="Day or night" value={s.theme} onChange={(v) => update({ theme: v })}
-            options={[{ value: "system", label: "System" }, { value: "light", label: "Day" }, { value: "dark", label: "Night" }]} />
-        </Row>
-      </Section>
-
-
       <Section title="Scan folders" aside="loose games, zips, repacks">
         <p className="mb-3 text-[13px] text-ink-2">
           Shelf reads your launchers automatically. Add folders where you keep games that didn't come from one — Shelf
           watches them and notices new downloads by itself.
         </p>
-        <ul className="divide-y divide-rule rounded-[4px] border border-rule bg-surface">
-          {s.scanRoots.length === 0 && <li className="px-4 py-3 text-[13px] text-ink-3">No folders yet.</li>}
+        <ul className="glass divide-y divide-[var(--rule)] overflow-hidden">
+          {s.scanRoots.length === 0 && <li className="px-5 py-3.5 text-[13px] text-ink-3">No folders yet.</li>}
           {s.scanRoots.map((r) => (
-            <li key={r.path} className="flex items-center gap-3 px-4 py-2">
+            <li key={r.path} className="flex items-center gap-3 px-5 py-2.5">
               <span className={clsx("typed flex-1 truncate text-[12.5px]", r.reachable ? "text-ink" : "text-ink-3 line-through")} title={r.path}>{r.path}</span>
               {!r.reachable && <span className="text-[12px] text-warn">not reachable</span>}
               <IconButton label={`Stop scanning ${r.path}`} onClick={() => bridge.send({ type: "removeRoot", path: r.path })}>
@@ -56,7 +42,7 @@ export function Settings() {
             </Button>
           ))}
         </div>
-        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-dashed border-rule pt-4">
+        <div className="mt-5 flex flex-wrap items-center gap-2 px-1">
           <span className="mr-1 text-[13px] text-ink-2">Search a whole drive once:</span>
           {s.drives.map((d) => (
             <Button key={d} small icon={<HardDrive size={13} />} disabled={state.scan.running} onClick={() => bridge.send({ type: "scanDrive", root: d })}>
@@ -81,9 +67,9 @@ export function Settings() {
       </Section>
 
       <Section title="Launchers" aside="read from local files only — no sign-ins">
-        <ul className="divide-y divide-rule rounded-[4px] border border-rule bg-surface">
+        <ul className="glass divide-y divide-[var(--rule)] overflow-hidden">
           {state.sources.map((src) => (
-            <li key={src.source} className="flex items-start gap-3 px-4 py-2.5">
+            <li key={src.source} className="flex items-start gap-3 px-5 py-3">
               <StateDot state={src.state} />
               <span className="w-[104px] shrink-0 text-[13px] font-medium text-ink">{src.name}</span>
               <span className={clsx("min-w-0 flex-1 text-[12.5px] break-words", src.state === "unreadable" ? "text-stamp-red" : src.state === "partial" ? "text-warn" : "text-ink-3")}>
@@ -122,6 +108,16 @@ export function Settings() {
         </Row>
       </Section>
 
+      <Section title="Appearance">
+        <ThemePicker value={s.palette} dark={document.documentElement.dataset.theme === "dark"} onChange={(v) => update({ palette: v })} />
+        <div className="h-3" />
+        <Row label="Day or night" hint="System follows Windows' light or dark setting. Every colour theme has both.">
+          <Segmented label="Day or night" value={s.theme} onChange={(v) => update({ theme: v })}
+            options={[{ value: "system", label: "System" }, { value: "light", label: "Day" }, { value: "dark", label: "Night" }]} />
+        </Row>
+      </Section>
+
+
       <p className="typed mt-10 text-center text-[11px] text-ink-4">
         Shelf {version} · your library stays on this PC · Shelf never changes, moves or deletes files in game folders
       </p>
@@ -131,7 +127,7 @@ export function Settings() {
 
 function Section({ title, aside, children }: { title: string; aside?: string; children: ReactNode }) {
   return (
-    <section className="mb-10">
+    <section className="mb-11">
       <SectionTitle aside={aside}>{title}</SectionTitle>
       {children}
     </section>
@@ -149,7 +145,7 @@ function KeyField({ has, onSave }: { has: boolean; onSave(key: string): void }) 
         onChange={(e) => setValue(e.target.value)}
         placeholder={has ? "Saved — paste to replace" : "Paste key"}
         aria-label="SteamGridDB key"
-        className="h-7 w-[190px] rounded-[6px] border border-rule-strong bg-surface px-2.5 text-[12.5px] text-ink outline-none placeholder:text-ink-4 focus:border-ink-3"
+        className="h-8 w-[200px] rounded-full border border-[var(--edge)] bg-[var(--sunken)] px-3.5 text-[12.5px] text-ink outline-none placeholder:text-ink-3 focus:border-accent"
       />
       <Button small tone="primary" disabled={value.trim() === ""} onClick={() => { onSave(value.trim()); setValue(""); }}>Save</Button>
       {has && <Button small tone="quiet" onClick={() => onSave("")}>Remove</Button>}
@@ -159,7 +155,7 @@ function KeyField({ has, onSave }: { has: boolean; onSave(key: string): void }) 
 
 function Row({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-6 py-2.5">
+    <div className="glass-flat mb-2 flex items-center justify-between gap-6 rounded-[18px] px-5 py-3.5">
       <div className="min-w-0">
         <p className="text-[13.5px] text-ink">{label}</p>
         {hint && <p className="mt-0.5 text-[12.5px] text-ink-3">{hint}</p>}

@@ -1,10 +1,13 @@
 import clsx from "clsx";
 import { PALETTES, type Palette, type PaletteId, type Tokens } from "../lib/palettes";
 
-/** Colour and black themes as little skies: each swatch shows its own sky, clouds, accents and button in the current mode. */
+/**
+ * Colour and black themes as little rooms: each swatch shows its own light, three cards floating in it, and its
+ * button, in the current mode — what the app looks like when a game without art is in focus.
+ */
 export function ThemePicker({ value, dark, onChange }: { value: PaletteId; dark: boolean; onChange(id: PaletteId): void }) {
   return (
-    <div role="radiogroup" aria-label="Colour theme" className="space-y-5">
+    <div role="radiogroup" aria-label="Colour theme" className="space-y-6">
       <Group label="Colour" palettes={PALETTES.filter((p) => !p.black)} value={value} dark={dark} onChange={onChange} />
       <Group label="Black" palettes={PALETTES.filter((p) => p.black)} value={value} dark={dark} onChange={onChange} />
     </div>
@@ -14,76 +17,65 @@ export function ThemePicker({ value, dark, onChange }: { value: PaletteId; dark:
 function Group({ label, palettes, value, dark, onChange }: { label: string; palettes: Palette[]; value: PaletteId; dark: boolean; onChange(id: PaletteId): void }) {
   return (
     <div>
-      <p className="mb-2 text-[11.5px] font-semibold tracking-[0.12em] text-ink-3 uppercase">{label}</p>
+      <p className="caps mb-2.5 px-1 text-ink-3">{label}</p>
       <div className="grid grid-cols-3 gap-3 max-[760px]:grid-cols-2">
-      {palettes.map((p) => {
-        const t = dark ? p.dark : p.light;
-        const on = p.id === value;
-        return (
-          <button
-            key={p.id}
-            role="radio"
-            aria-checked={on}
-            onClick={() => onChange(p.id)}
-            className={clsx(
-              "group cursor-pointer overflow-hidden rounded-[14px] text-left transition-[box-shadow,transform] hover:-translate-y-0.5",
-              on ? "ring-2 ring-ink ring-offset-2 ring-offset-[var(--bg)]" : "ring-1 ring-rule-strong hover:ring-ink-3",
-            )}
-            style={{ background: t.bg }}
-          >
-            <MiniSky t={t} />
-            <div className="flex items-end justify-between gap-2 px-3.5 pt-2.5 pb-3">
-              <div className="min-w-0">
-                <p className="font-display text-[22px] leading-none" style={{ color: t.ink }}>{p.name}</p>
-                <p className="mt-1 truncate text-[11.5px]" style={{ color: t["ink-3"] }}>{p.blurb}</p>
+        {palettes.map((p) => {
+          const night = dark || !!p.black;
+          const t = dark ? p.dark : p.light;
+          const on = p.id === value;
+          return (
+            <button
+              key={p.id}
+              role="radio"
+              aria-checked={on}
+              onClick={() => onChange(p.id)}
+              className={clsx(
+                "group relative cursor-pointer overflow-hidden rounded-[20px] text-left transition-[box-shadow,transform] hover:-translate-y-0.5",
+                on ? "ring-2 ring-accent ring-offset-2 ring-offset-transparent" : "ring-1 ring-[var(--edge)] hover:ring-[var(--edge-hi)]",
+              )}
+            >
+              <MiniRoom t={t} night={night} />
+              <div className="absolute inset-x-2 bottom-2 flex items-end justify-between gap-2 rounded-[14px] px-3 py-2.5" style={{ background: night ? "rgb(255 255 255 / 0.08)" : "rgb(255 255 255 / 0.6)", border: `1px solid ${night ? "rgb(255 255 255 / 0.12)" : "rgb(255 255 255 / 0.8)"}`, backdropFilter: "blur(14px)" }}>
+                <div className="min-w-0">
+                  <p className="text-[15px] leading-none font-semibold tracking-[-0.02em]" style={{ color: t.ink }}>{p.name}</p>
+                  <p className="mt-1 truncate text-[11px]" style={{ color: t["ink-3"] }}>{p.blurb}</p>
+                </div>
+                <span className="shrink-0 rounded-full px-2.5 py-0.5 text-[10.5px] font-semibold" style={{ background: t.accent, color: t["accent-ink"] }}>
+                  Play
+                </span>
               </div>
-              <div className="flex shrink-0 items-center gap-1">
-                {(["u-blue", "u-red", "u-yellow"] as const).map((k) => (
-                  <span key={k} className="size-3 rounded-full" style={{ background: t[k] }} />
-                ))}
-              </div>
-            </div>
-          </button>
-        );
-      })}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function MiniSky({ t }: { t: Tokens }) {
+function MiniRoom({ t, night }: { t: Tokens; night: boolean }) {
+  const base = night ? (t.bg === "#000000" ? "#000000" : t.bg) : t.bg;
+  const [a, b] = night ? [t["sky-glow"], t["sky-mid"]] : [t["sky-low"], t["sky-top"]];
   return (
-    <div className="relative h-[88px] overflow-hidden" style={{ background: `linear-gradient(180deg, ${t["sky-top"]} 0%, ${t["sky-mid"]} 45%, ${t["sky-low"]} 80%, ${t["sky-glow"]} 100%)` }}>
-      <div className="absolute top-3 right-6 size-9 rounded-full opacity-80" style={{ background: `radial-gradient(circle, ${t["sky-glow"]}, transparent 70%)` }} />
-      {/* three tiny cards on an arc */}
-      {[-14, 0, 14].map((r, i) => (
-        <div
-          key={r}
-          className="absolute bottom-3 left-1/2 h-11 w-8 rounded-[4px] shadow-sm"
-          style={{
-            transform: `translateX(-50%) rotate(${r}deg) translateY(${i === 1 ? -6 : 0}px)`,
-            transformOrigin: "50% 160%",
-            background: `linear-gradient(160deg, ${[t["u-blue"], t.accent, t["u-red"]][i]}, ${t["sky-top"]})`,
-          }}
-        />
-      ))}
-      {/* cloud bank */}
-      {[0, 22, 46, 70, 90].map((x, i) => (
-        <div
-          key={x}
-          className="absolute rounded-full"
-          style={{
-            left: `${x - 8}%`,
-            bottom: -14 + (i % 2) * 4,
-            width: 70,
-            height: 34,
-            background: `radial-gradient(ellipse at 45% 35%, ${t.cloud} 45%, ${t["cloud-shade"]} 90%, transparent 92%)`,
-          }}
-        />
-      ))}
-      <span className="absolute top-2.5 left-3 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: t.accent, color: t["accent-ink"] }}>
-        Play
-      </span>
+    <div className="relative h-[132px] overflow-hidden" style={{ background: base }}>
+      <div
+        className="absolute -inset-6"
+        style={{ background: `radial-gradient(55% 60% at 25% 30%, ${a}, transparent 70%), radial-gradient(55% 65% at 80% 70%, ${b}, transparent 72%)`, filter: "blur(18px)", opacity: night ? 0.8 : 0.75 }}
+      />
+      {/* three cards hanging in depth */}
+      <div className="absolute inset-x-0 top-4 flex justify-center" style={{ perspective: 400 }}>
+        {[-1, 0, 1].map((d) => (
+          <div
+            key={d}
+            className="h-[64px] w-[44px] rounded-[7px] shadow-[0_10px_18px_-8px_rgb(0_0_0/0.6)]"
+            style={{
+              background: `linear-gradient(150deg, ${[t["u-blue"], t.accent, t["u-red"]][d + 1]}, ${night ? "#00000088" : "#ffffff55"})`,
+              transform: `translateX(${d * -6}px) translateZ(${d === 0 ? 20 : -20}px) rotateY(${d * -28}deg)`,
+              zIndex: d === 0 ? 2 : 1,
+              boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.25)",
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
