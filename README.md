@@ -6,7 +6,7 @@ of what you play, and shows you what's quietly filling up your drives.
 
 **Website: [shelf-anish.vercel.app](https://shelf-anish.vercel.app)** · **[Download for Windows](https://github.com/Anish-Juyal-01/Shelf/releases/latest)**
 
-![Shelf's library: games on a wheel rising out of a painted sky, and a one-sentence summary of the PC](docs/screenshots/library.png)
+![Shelf's library: recent games floating in a 3D arc, Hades in front lighting the window with its colours, and a glass dock with the library at a glance](docs/screenshots/library.png)
 
 - **Every launcher**: Steam, Epic Games, GOG Galaxy, EA app, Ubisoft Connect, Rockstar, Battle.net, Riot, Xbox app
   (Microsoft Store / Game Pass), itch, Amazon Games and HoYoPlay — read straight from their files on disk. No sign-ins.
@@ -17,24 +17,26 @@ of what you play, and shows you what's quietly filling up your drives.
   folder goes quiet.
 - **Playtime tracking** for every game, from any launcher or a desktop shortcut. Steam's own hours are imported on
   day one. Sleep, crashes and restarts are handled, and time when Shelf wasn't running is shown as a gap — never guessed.
-- **Spots unknown games**: a program Shelf doesn't know that runs fullscreen or keeps the GPU busy for a minute gets a
-  "Looks like you're playing X — add it?"
+- **Spots unknown games**: a program Shelf doesn't know that runs like a game for a minute (truly fullscreen, or keeping
+  the GPU busy the whole time) gets a "Looks like you're playing X — add it?" — but only when its folder looks like a
+  game too, so a maximized app or video player never gets asked about.
 - **Storage view**: every game drawn to the size it takes, games untouched for 90+ days, second copies of the same
   game, and leftover installers and archives. **Shelf never deletes anything** — *Uninstall* opens the launcher's own
   uninstaller (or Windows' Installed apps); for loose games it opens the folder so you decide.
 - **Art**: covers, backgrounds, logos and each game's own icon, taken from what your launchers already keep on disk —
   and, if you allow it, looked up online for whatever's missing (see [Data & privacy](#data--privacy)).
-- **Twelve colour themes** — six colourful, six black — each with a day and a night version (or follow Windows), and
-  two ways to show your library: a wheel or a ring.
+- **A window lit by your games**: whatever you're looking at fills the window with its colours, behind frosted-glass
+  panels. Your recent games hang in a 3D arc you turn with the mouse or ←/→, and the whole library floats beneath.
+- **Twelve colour themes** — six colourful, six black — each with a day and a night version (or follow Windows).
 - Tray icon, Start with Windows, single instance, Windows notifications for new games.
 - Light on the PC: a small native app (Rust + Tauri) whose watcher checks running programs every 5 seconds and uses
   well under 1% CPU.
 
-| Storage | Activity | Black theme (Ember) |
+| A game | Activity (day) | Storage |
 |---|---|---|
-| ![Storage view](docs/screenshots/storage.png) | ![Activity view](docs/screenshots/activity.png) | ![Library in the Ember theme](docs/screenshots/library-ember.png) |
+| ![A game's page: its cover floating in the room, playtime, sessions and where it's installed](docs/screenshots/game.png) | ![Activity: the last seven days of play, hour by hour](docs/screenshots/activity.png) | ![Storage: drives, and every game drawn to the space it takes](docs/screenshots/storage.png) |
 
-*Screenshots use Shelf's built-in sample library.*
+*Screenshots use Shelf's built-in sample library; game art belongs to its publishers.*
 
 ## Install
 
