@@ -5,6 +5,7 @@ import { useState } from "react";
 import { bridge } from "../bridge/bridge";
 import type { GameDetail, InstallView, SessionView } from "../bridge/protocol";
 import { Cover } from "../components/Cover";
+import { TiltCard } from "../components/TiltCard";
 import { Button, IconButton, MenuButton, SectionTitle, Tag } from "../components/ui";
 import { bytes, clock, duration, hours, relative, sourceName, stampDate } from "../lib/format";
 import { isOverdue } from "../lib/library";
@@ -29,12 +30,14 @@ export function GamePage() {
       </button>
 
       <div className="grid grid-cols-[minmax(220px,300px)_1fr] gap-14 max-[860px]:grid-cols-1 max-[860px]:gap-8">
-        {/* The cover hangs in the room, turned slightly toward the text. */}
-        <div className="stage relative max-w-[300px]">
-          <div className="float" style={{ transform: "rotateY(13deg) rotateX(2deg)", transformStyle: "preserve-3d" }}>
-            <div className="sheen rounded-[20px]">
-              <Cover title={game.title} url={game.coverUrl} iconUrl={game.iconUrl} meta={sourceName[game.sources[0]]} large className={clsx("rounded-[20px]", !game.installed && "opacity-50 grayscale")} />
-            </div>
+        {/* The cover hangs in the room and turns toward the cursor. */}
+        <div className="relative max-w-[300px]">
+          <div className="float">
+            <TiltCard>
+              <div className="sheen rounded-[20px]">
+                <Cover title={game.title} url={game.coverUrl} iconUrl={game.iconUrl} meta={sourceName[game.sources[0]]} large className={clsx("rounded-[20px]", !game.installed && "opacity-50 grayscale")} />
+              </div>
+            </TiltCard>
           </div>
           <div className="mx-auto mt-3 h-7 w-[80%] rounded-[50%] bg-black/40 blur-xl" />
           {overdue && (

@@ -297,3 +297,24 @@ fn build_splits_by_confidence_and_drops_review_duplicates() {
     assert_eq!(snap.review.len(), 1);
     assert_eq!(snap.review[0].title, "Maybe");
 }
+
+#[test]
+fn a_launcher_outside_the_game_folder_never_counts_as_the_game() {
+    // VALORANT: the Riot reader launches it through the Riot Client, which lives in its own folder and runs all day.
+    let t = TestDb::new();
+    let folder = t.tree.dir("Riot Games/VALORANT/live");
+    let game_exe = t.tree.file("Riot Games/VALORANT/live/VALORANT.exe", 10);
+    let client = t.tree.file("Riot Games/Riot Client/RiotClientServices.exe", 10);
+    let mut v = game(SourceKind::Riot, "VALORANT", &folder);
+    v.launch_exe = Some(client.clone());
+    v.play_exes = vec![game_exe.clone()];
+    t.sync(vec![v.clone()], vec![]);
+    let keys: Vec<String> = t.library.game_exes().unwrap().into_iter().map(|(k, _)| k).collect();
+    assert_eq!(keys, [shelf_core::platform::path_key(&game_exe)]);
+
+    // An older build saved the client as a game exe: the next sync drops it.
+    let c = rusqlite::Connection::open(t.tree.p("data/shelf.db")).unwrap();
+    c.execute("INSERT INTO game_exes (exe_key, exe_path, game_id) SELECT ?1, ?2, id FROM games", [shelf_core::platform::path_key(&client), client.clone()]).unwrap();
+    t.sync(vec![v], vec![]);
+    assert!(!t.library.game_exes().unwrap().iter().any(|(k, _)| k.contains("RIOT CLIENT")));
+}

@@ -9,7 +9,7 @@ use super::db::ShelfDb;
 use crate::library::LibrarySnapshot;
 use crate::model::{InstallRecord, SizeSource, SourceKind, SourceState};
 use crate::naming;
-use crate::platform::{normalize, path_key};
+use crate::platform::{is_same_or_inside, normalize, path_key};
 use crate::scanning::classifier::{evaluate_path, install_root_for, title_for, ClassifierOptions};
 use crate::scanning::scanner::measure_size;
 
@@ -255,6 +255,8 @@ impl LibraryStore {
             tx.execute("UPDATE installs SET state = 'removed' WHERE id = ?1", [id])?;
             result.removed_installs += 1;
         }
+
+        prune_game_exes(&tx)?;
 
         for s in &snap.sources {
             tx.execute(
@@ -528,7 +530,8 @@ fn upsert_install(c: &Connection, game_id: i64, i: &InstallRecord, now: i64) -> 
         },
     )?;
     let mut seen: Vec<&String> = Vec::new();
-    for exe in i.play_exes.iter().chain(i.launch_exe.iter()) {
+    // Only exes inside the game's own folder count as playing it: a launch exe can be the launcher itself.
+    for exe in i.play_exes.iter().chain(i.launch_exe.iter()).filter(|e| is_same_or_inside(e, &i.install_path)) {
         if seen.iter().any(|s| s.eq_ignore_ascii_case(exe)) {
             continue;
         }
@@ -557,6 +560,27 @@ fn add_install(c: &Connection, record: &InstallRecord, now: i64, lock_title: boo
     }
     upsert_install(c, game_id, record, now)?;
     Ok(game_id)
+}
+
+/// Drops exe links that point outside every folder of their game (older builds saved the launch exe, which for
+/// VALORANT is the Riot Client — so the client running all day counted as playing).
+fn prune_game_exes(c: &Connection) -> rusqlite::Result<()> {
+    let exes: Vec<(String, String, i64)> = {
+        let mut q = c.prepare("SELECT exe_key, exe_path, game_id FROM game_exes")?;
+        let rows = q.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
+        rows.collect::<rusqlite::Result<_>>()?
+    };
+    let folders: Vec<(i64, String)> = {
+        let mut q = c.prepare("SELECT game_id, install_path FROM installs")?;
+        let rows = q.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        rows.collect::<rusqlite::Result<_>>()?
+    };
+    for (key, path, game) in exes {
+        if !folders.iter().any(|(g, f)| *g == game && is_same_or_inside(&path, f)) {
+            c.execute("DELETE FROM game_exes WHERE exe_key = ?1", [&key])?;
+        }
+    }
+    Ok(())
 }
 
 fn ignore(c: &Connection, key: &str, now: i64) -> rusqlite::Result<()> {

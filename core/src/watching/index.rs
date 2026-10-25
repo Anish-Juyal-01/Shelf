@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use crate::platform::path_key;
-use crate::scanning::exes::{is_known_app, is_noise};
+use crate::scanning::exes::is_never_playing;
 
 #[derive(Debug, Default)]
 pub struct GameIndex {
@@ -39,13 +39,15 @@ impl GameIndex {
 
     pub fn match_exe(&self, exe_path: Option<&str>) -> Option<i64> {
         let exe = exe_path.filter(|e| !e.is_empty())?;
+        // Launchers, anti-cheat and helpers never count as playing, even if a launcher record named one (VALORANT is
+        // started through the Riot Client, which then runs all day).
+        let name = Path::new(exe).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        if is_never_playing(&name) {
+            return None;
+        }
         let key = path_key(exe);
         if let Some(&id) = self.exes.get(&key) {
             return Some(id);
-        }
-        let name = Path::new(exe).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        if is_noise(&name) || is_known_app(&name) {
-            return None;
         }
         self.roots.iter().find(|(prefix, _)| key.starts_with(prefix.as_str())).map(|r| r.1)
     }
@@ -58,7 +60,7 @@ mod tests {
     #[test]
     fn matches() {
         let index = GameIndex::new(
-            [(r"D:\ELSEWHERE\LAUNCH.EXE".to_string(), 7)],
+            [(r"D:\ELSEWHERE\LAUNCH.EXE".to_string(), 7), (r"C:\RIOT GAMES\RIOT CLIENT\RIOTCLIENTSERVICES.EXE".to_string(), 1)],
             [(r"C:\Games\Hades".to_string(), 1), (r"C:\Games\Hades\Mods\BigMod".to_string(), 2), (r"C:\".to_string(), 3)],
         );
         for (exe, game) in [
@@ -70,6 +72,11 @@ mod tests {
             (Some(r"C:\Games\Hades\UnityCrashHandler64.exe"), None),
             (Some(r"C:\Games\Hades\EasyAntiCheat_EOS_Setup.exe"), None),
             (Some(r"C:\Windows\explorer.exe"), None),
+            (Some(r"C:\Riot Games\Riot Client\RiotClientServices.exe"), None),
+            (Some(r"C:\Program Files\Riot Vanguard\vgc.exe"), None),
+            // Anything that ships next to a game but isn't it: a store helper, anti-cheat.
+            (Some(r"C:\Games\Hades\EpicWebHelper.exe"), None),
+            (Some(r"C:\Games\Hades\FACEIT.exe"), None),
             (None, None),
         ] {
             assert_eq!(index.match_exe(exe), game, "{exe:?}");

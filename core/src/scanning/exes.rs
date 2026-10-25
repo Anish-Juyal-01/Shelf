@@ -67,6 +67,29 @@ pub fn is_known_app(exe: &str) -> bool {
     KNOWN_APPS.iter().any(|a| a.eq_ignore_ascii_case(s))
 }
 
+/// Launchers, store helpers and anti-cheat that run while you play (or all day) but are never the game. Used only by
+/// playtime tracking — not by the folder classifier, since plenty of game folders ship a "Launcher.exe" of their own.
+const NEVER_PLAYING: &[&str] = &[
+    "riotclientservices", "riotclientux", "riotclientcrashhandler", "riotclient", "leagueclient", "leagueclientux",
+    "socialclubhelper", "rockstarservice", "rockstarlauncher", "epicwebhelper", "epicgameslauncher",
+    "steamservice", "epiconlineservices", "epiconlineservicesuserhelper", "epiconlineserviceshost", "eosoverlayrenderer-win64-shipping",
+    "eaconnect_microsoft", "eadesktopwebhelper", "originwebhelperservice", "originclientservice", "eaanticheat.gameservice",
+    "ubisoftconnect", "ubisoftextension", "upc", "uplay", "uplaywebcore", "galaxyclient helper", "galaxycommunication",
+    "gogalaxy", "launcher", "rockstarlauncher", "playgtav", "battle.net helper", "agent", "blizzard battle.net app",
+    "xboxpcapp", "xboxpcappft", "gamingservices", "gamingservicesnet", "gamebar", "gamebarftserver", "amazon games",
+    "amazongamesui", "itch", "hoyoplay", "hyp", "launcher_epic", "paradox launcher", "bethesdanetlauncher",
+    "riotclient", "riotclientcrashhandler",
+    // Anti-cheat services and trays.
+    "vgc", "vgtray", "vgk", "faceit", "faceitservice", "faceitclient", "esportal", "nprotect", "gameguard", "gamemon",
+    "xigncode", "mhyprot", "ace-base", "acesvc", "ace-tray", "pnkbstra", "pnkbstrb", "eaanticheat", "battleyelauncher",
+];
+
+/// True for exes that never count as playing a game, wherever they live (see [`NEVER_PLAYING`]).
+pub fn is_never_playing(exe: &str) -> bool {
+    let s = stem(exe);
+    is_noise(exe) || is_known_app(exe) || NEVER_PLAYING.iter().any(|a| a.eq_ignore_ascii_case(s))
+}
+
 pub fn is_known_game(exe: &str) -> bool {
     let s = stem(exe);
     KNOWN_GAMES.iter().any(|a| a.eq_ignore_ascii_case(s))

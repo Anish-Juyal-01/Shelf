@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::path::Path;
 
 use crate::platform::{is_same_or_inside, path_key};
-use crate::scanning::exes::{is_known_app, is_noise, stem};
+use crate::scanning::exes::{is_never_playing, stem};
 
 #[derive(Debug, Clone)]
 pub struct DetectorOptions {
@@ -47,7 +47,7 @@ const NOT_GAMES: &[&str] = &[
 /// Claude and WhatsApp were games.)
 pub fn is_excluded(exe_path: &str) -> bool {
     let name = Path::new(exe_path).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-    if is_noise(&name) || is_known_app(&name) || NOT_GAMES.contains(&stem(&name).to_lowercase().as_str()) {
+    if is_never_playing(&name) || NOT_GAMES.contains(&stem(&name).to_lowercase().as_str()) {
         return true;
     }
     if path_key(exe_path).contains(r"\WINDOWSAPPS\") {
