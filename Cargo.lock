@@ -3404,7 +3404,7 @@ dependencies = [
 
 [[package]]
 name = "shelf"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "rusqlite",
  "serde",
@@ -3420,7 +3420,7 @@ dependencies = [
 
 [[package]]
 name = "shelf-cli"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "chrono",
  "ctrlc",
@@ -3431,7 +3431,7 @@ dependencies = [
 
 [[package]]
 name = "shelf-core"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "fancy-regex",
  "notify",
