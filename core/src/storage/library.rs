@@ -462,6 +462,15 @@ impl LibraryStore {
         rows.collect()
     }
 
+    /// Store / Xbox package family names of installed games (package → game id), for matching running processes.
+    pub fn game_packages(&self) -> rusqlite::Result<Vec<(String, i64)>> {
+        let c = self.db.connect()?;
+        let mut q = c.prepare("SELECT source_key, game_id FROM installs WHERE source = 'Xbox' AND state = 'installed' AND source_key IS NOT NULL")?;
+        let rows = q.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))?;
+        // A family name is "<name>_<publisher id>"; older builds saved only the name, which can't match a process.
+        Ok(rows.filter_map(Result::ok).filter(|(k, _)| k.contains('_')).collect())
+    }
+
     /// What each launcher reader reported last time, for honest status in Settings. Installs hold only the count.
     pub fn source_statuses(&self) -> rusqlite::Result<Vec<(SourceKind, SourceState, String, i64)>> {
         let c = self.db.connect()?;

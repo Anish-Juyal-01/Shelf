@@ -28,7 +28,18 @@ impl SourceReader for XboxReader {
                 roots += 1;
                 for game in games.flatten().map(|e| e.path()).filter(|p| p.is_dir()) {
                     let config = game.join("Content").join("MicrosoftGame.config");
-                    if let Some(r) = config.is_file().then(|| read_config(&config, &game)).flatten() {
+                    if let Some(mut r) = config.is_file().then(|| read_config(&config, &game)).flatten() {
+                        // Some configs (Minecraft Launcher) name no app; the installed package's manifest always does.
+                        if r.launch_uri.is_none() {
+                            let family = r.source_key.clone().filter(|k| k.contains('_'));
+                            let app = family
+                                .as_deref()
+                                .and_then(crate::platform::package_path)
+                                .and_then(|p| manifest_app_id(&p.join("AppxManifest.xml")));
+                            if let (Some(family), Some(app)) = (family, app) {
+                                r.launch_uri = Some(format!(r"shell:AppsFolder\{family}!{app}"));
+                            }
+                        }
                         installs.push(r);
                     }
                 }
@@ -74,18 +85,27 @@ pub fn read_config(config: &Path, game_dir: &Path) -> Option<InstallRecord> {
 
     let content = game_dir.join("Content");
     let mut r = InstallRecord::new(SourceKind::Xbox, title, normalize(&game_dir.to_string_lossy()));
-    r.source_key = identity.and_then(|i| i.attribute("Name")).map(str::to_string);
     r.launch_exe = exe.and_then(|e| e.attribute("Name")).map(|n| content.join(n).to_string_lossy().into_owned());
     r.uninstall_command = Some("ms-settings:appsfeatures".into());
-    if let (Some(name), Some(publisher), Some(app)) =
-        (identity.and_then(|i| i.attribute("Name")), identity.and_then(|i| i.attribute("Publisher")), exe.and_then(|e| e.attribute("Id")))
-    {
-        r.launch_uri = Some(format!(r"shell:AppsFolder\{name}_{}!{app}", publisher_id(publisher)));
+    // The package family name: what Windows reports for every process the game runs, so playtime can be matched
+    // wherever the game actually runs from.
+    let name = identity.and_then(|i| i.attribute("Name"));
+    let family = name.zip(identity.and_then(|i| i.attribute("Publisher"))).map(|(n, p)| format!("{n}_{}", publisher_id(p)));
+    r.source_key = family.clone().or(name.map(str::to_string));
+    if let (Some(family), Some(app)) = (family, exe.and_then(|e| e.attribute("Id"))) {
+        r.launch_uri = Some(format!(r"shell:AppsFolder\{family}!{app}"));
     }
     if let Some(e) = r.launch_exe.clone() {
         r.play_exes.push(e);
     }
     Some(r)
+}
+
+/// The first app a package's `AppxManifest.xml` declares (`<Application Id="Minecraft" ...>`).
+pub fn manifest_app_id(manifest: &Path) -> Option<String> {
+    let text = fs::read_to_string(manifest).ok()?;
+    let doc = roxmltree::Document::parse(text.trim_start_matches('\u{feff}')).ok()?;
+    doc.descendants().find(|n| n.tag_name().name() == "Application").and_then(|n| n.attribute("Id")).map(str::to_string)
 }
 
 /// The 13-character publisher id in a package family name: SHA-256 of the UTF-16 publisher string, first 8 bytes,

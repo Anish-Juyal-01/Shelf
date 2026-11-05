@@ -306,3 +306,37 @@ mod tests {
         assert_eq!(normalize(r"C:\"), r"C:\");
     }
 }
+
+/// Where an installed Store / Xbox package lives (`C:\Program Files\WindowsApps\<full name>`), by family name.
+#[cfg(windows)]
+pub fn package_path(family: &str) -> Option<PathBuf> {
+    use windows_sys::Win32::Storage::Packaging::Appx::{GetPackagePathByFullName, GetPackagesByPackageFamily};
+    const INSUFFICIENT: u32 = 122;
+    let family = wide(family);
+    let (mut count, mut len) = (0u32, 0u32);
+    let first = unsafe { GetPackagesByPackageFamily(family.as_ptr(), &mut count, std::ptr::null_mut(), &mut len, std::ptr::null_mut()) };
+    if first != INSUFFICIENT || count == 0 {
+        return None;
+    }
+    let mut names = vec![std::ptr::null_mut::<u16>(); count as usize];
+    let mut buffer = vec![0u16; len as usize];
+    if unsafe { GetPackagesByPackageFamily(family.as_ptr(), &mut count, names.as_mut_ptr(), &mut len, buffer.as_mut_ptr()) } != 0 {
+        return None;
+    }
+    let full = names.first().copied().filter(|p| !p.is_null())?;
+    let mut plen = 0u32;
+    if unsafe { GetPackagePathByFullName(full, &mut plen, std::ptr::null_mut()) } != INSUFFICIENT {
+        return None;
+    }
+    let mut path = vec![0u16; plen as usize];
+    if unsafe { GetPackagePathByFullName(full, &mut plen, path.as_mut_ptr()) } != 0 {
+        return None;
+    }
+    let end = path.iter().position(|&c| c == 0).unwrap_or(path.len());
+    Some(PathBuf::from(String::from_utf16_lossy(&path[..end])))
+}
+
+#[cfg(not(windows))]
+pub fn package_path(_family: &str) -> Option<PathBuf> {
+    None
+}

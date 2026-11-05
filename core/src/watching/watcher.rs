@@ -205,7 +205,7 @@ impl ShelfWatcher {
     pub fn refresh_index(&self) {
         let i = &self.inner;
         let installs = i.library.installs(true).unwrap_or_default().into_iter().map(|r| (r.install_path, r.game_id));
-        let index = GameIndex::new(i.library.game_exes().unwrap_or_default(), installs);
+        let index = GameIndex::new(i.library.game_exes().unwrap_or_default(), installs).with_packages(i.library.game_packages().unwrap_or_default());
         let ignored = i.library.ignored_keys().unwrap_or_default();
         let mut s = i.state.lock().unwrap();
         s.index = index;
@@ -269,7 +269,9 @@ impl Inner {
             let procs = s.processes.snapshot();
             let running: Vec<RunningGame> = procs
                 .iter()
-                .filter_map(|p| s.index.match_exe(p.path.as_deref()).map(|id| RunningGame { game_id: id, pid: p.pid, exe_path: p.path.clone() }))
+                .filter_map(|p| {
+                    s.index.match_process(p.path.as_deref(), p.package.as_deref()).map(|id| RunningGame { game_id: id, pid: p.pid, exe_path: p.path.clone() })
+                })
                 .collect();
             let events = s.tracker.observe(&running, now);
 

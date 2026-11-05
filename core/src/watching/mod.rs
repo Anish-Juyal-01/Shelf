@@ -45,12 +45,15 @@ impl Clock for FakeClock {
     }
 }
 
-/// A running process: pid, exe name, and full exe path when Windows would tell us.
+/// A running process: pid, exe name, full exe path when Windows would tell us, and the Store package it belongs to.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ProcInfo {
     pub pid: u32,
     pub name: String,
     pub path: Option<String>,
+    /// Package family name for Store / Xbox apps (`ROBLOXCorporation.RobloxGDK_55nm5eh3cm0pr`). Every process a
+    /// packaged game runs carries it, wherever its exe lives.
+    pub package: Option<String>,
 }
 
 pub trait ProcessSource: Send {

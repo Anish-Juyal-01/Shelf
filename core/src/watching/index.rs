@@ -13,6 +13,9 @@ pub struct GameIndex {
     exes: HashMap<String, i64>,
     /// Install folder keys ending in `\`, longest first (a mod folder inside a game wins over the game).
     roots: Vec<(String, i64)>,
+    /// Store / Xbox package family names, lowercased. Xbox games are installed to `C:\XboxGames` but Windows runs them
+    /// from WindowsApps (and Minecraft Java runs as javaw.exe), so for them the package is the only reliable match.
+    packages: HashMap<String, i64>,
 }
 
 impl GameIndex {
@@ -26,7 +29,22 @@ impl GameIndex {
             .map(|(k, id)| (if k.ends_with('\\') { k } else { k + "\\" }, id))
             .collect();
         roots.sort_by_key(|r| std::cmp::Reverse(r.0.len()));
-        Self { exes: exes.into_iter().collect(), roots }
+        Self { exes: exes.into_iter().collect(), roots, packages: HashMap::new() }
+    }
+
+    /// Adds Store / Xbox games by package family name.
+    pub fn with_packages(mut self, packages: impl IntoIterator<Item = (String, i64)>) -> Self {
+        self.packages = packages.into_iter().map(|(p, id)| (p.to_lowercase(), id)).collect();
+        self
+    }
+
+    /// A running process to a game: by its Store package first (any process of a packaged game is that game), then by
+    /// its exe.
+    pub fn match_process(&self, exe_path: Option<&str>, package: Option<&str>) -> Option<i64> {
+        if let Some(&id) = package.and_then(|p| self.packages.get(&p.to_lowercase())) {
+            return Some(id);
+        }
+        self.match_exe(exe_path)
     }
 
     pub fn len(&self) -> usize {
@@ -81,5 +99,15 @@ mod tests {
         ] {
             assert_eq!(index.match_exe(exe), game, "{exe:?}");
         }
+    }
+
+    #[test]
+    fn packages_match_wherever_the_game_runs() {
+        let index = GameIndex::new([], [(r"C:\XboxGames\Minecraft Launcher".to_string(), 5)])
+            .with_packages([("Microsoft.4297127D64EC6_8wekyb3d8bbwe".to_string(), 5)]);
+        let javaw = r"C:\Users\you\AppData\Local\Packages\Microsoft.4297127D64EC6_8wekyb3d8bbwe\LocalCache\Local\runtime\bin\javaw.exe";
+        assert_eq!(index.match_process(Some(javaw), Some("microsoft.4297127d64ec6_8wekyb3d8bbwe")), Some(5));
+        assert_eq!(index.match_process(Some(javaw), None), None, "plain javaw is never a game by itself");
+        assert_eq!(index.match_process(Some(r"C:\x\app.exe"), Some("Someone.Else_abc")), None);
     }
 }

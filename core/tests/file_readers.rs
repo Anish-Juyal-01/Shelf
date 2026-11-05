@@ -41,6 +41,43 @@ fn xbox_reads_gaming_root_and_config() {
     let uri = game.launch_uri.as_deref().unwrap();
     assert!(uri.starts_with(r"shell:AppsFolder\ROBLOXCorporation.RobloxGDK_") && uri.ends_with("!Game"), "{uri}");
     assert!(game.launch_exe.as_deref().unwrap().ends_with(r"Content\RobloxPlayerBeta.exe"));
+    // The package family name, the same one Windows reports for every process the game runs.
+    assert_eq!(game.source_key.as_deref(), Some("ROBLOXCorporation.RobloxGDK_55nm5eh3cm0pr"));
+}
+
+#[test]
+fn xbox_records_the_package_even_without_an_app_id() {
+    // Minecraft Launcher's config names its exe without an Id.
+    let t = TempTree::new();
+    let mut root = b"RGBX".to_vec();
+    root.extend(1u32.to_le_bytes());
+    root.extend("XboxGames\0".encode_utf16().flat_map(u16::to_le_bytes));
+    std::fs::write(Path::new(&t.dir("drive")).join(".GamingRoot"), root).unwrap();
+    t.text(
+        "drive/XboxGames/Minecraft Launcher/Content/MicrosoftGame.config",
+        r#"<Game configVersion="1">
+          <Identity Name="Microsoft.4297127D64EC6" Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" Version="2.6.2.0" />
+          <ExecutableList><Executable Name="Minecraft.exe" TargetDeviceFamily="PC" /></ExecutableList>
+          <ShellVisuals DefaultDisplayName="Minecraft Launcher" />
+        </Game>"#,
+    );
+    let result = XboxReader.read(&context(&t, FakeRegistry::default()));
+    assert_eq!(result.installs[0].source_key.as_deref(), Some("Microsoft.4297127D64EC6_8wekyb3d8bbwe"));
+}
+
+#[test]
+fn a_package_manifest_names_its_app() {
+    let t = TempTree::new();
+    t.text(
+        "pkg/AppxManifest.xml",
+        r#"<?xml version="1.0" encoding="utf-8"?>
+        <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10">
+          <Applications><Application Id="Minecraft" Executable="GameLaunchHelper.exe" EntryPoint="Windows.FullTrustApplication" /></Applications>
+        </Package>"#,
+    );
+    let manifest = Path::new(&t.dir("pkg")).join("AppxManifest.xml");
+    assert_eq!(shelf_core::sources::file_stores::manifest_app_id(&manifest).as_deref(), Some("Minecraft"));
+    assert_eq!(shelf_core::sources::file_stores::manifest_app_id(&Path::new(&t.dir("pkg")).join("missing.xml")), None);
 }
 
 fn sql_quote(s: &str) -> String {

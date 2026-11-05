@@ -16,6 +16,7 @@ use windows_sys::Win32::System::Performance::{
     PdhAddEnglishCounterW, PdhCloseQuery, PdhCollectQueryData, PdhGetFormattedCounterArrayW, PdhOpenQueryW, PDH_FMT_COUNTERVALUE_ITEM_W,
     PDH_FMT_DOUBLE, PDH_HCOUNTER, PDH_HQUERY, PDH_MORE_DATA,
 };
+use windows_sys::Win32::Storage::Packaging::Appx::GetPackageFamilyName;
 use windows_sys::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     DestroyIcon, GetDesktopWindow, GetForegroundWindow, GetIconInfo, GetShellWindow, GetWindowLongPtrW, GetWindowRect, GetWindowThreadProcessId, IsZoomed,
@@ -33,10 +34,11 @@ fn from_wide(buf: &[u16]) -> String {
     String::from_utf16_lossy(&buf[..buf.iter().position(|&c| c == 0).unwrap_or(buf.len())])
 }
 
-/// Running processes. A full path is looked up once per new process and cached while that pid keeps its exe name.
+/// Running processes. A full path and Store package are looked up once per new process and cached while that pid keeps
+/// its exe name.
 #[derive(Default)]
 pub struct Win32Processes {
-    paths: HashMap<u32, (String, Option<String>)>,
+    paths: HashMap<u32, (String, Option<String>, Option<String>)>,
 }
 
 impl ProcessSource for Win32Processes {
@@ -55,15 +57,15 @@ impl ProcessSource for Win32Processes {
             if pid > 4 {
                 seen.push(pid);
                 let name = from_wide(&entry.szExeFile);
-                let cached = match self.paths.get(&pid) {
-                    Some(c) if c.0 == name => c.1.clone(),
+                let (path, package) = match self.paths.get(&pid) {
+                    Some(c) if c.0 == name => (c.1.clone(), c.2.clone()),
                     _ => {
-                        let path = query_path(pid);
-                        self.paths.insert(pid, (name.clone(), path.clone()));
-                        path
+                        let (path, package) = query_process(pid);
+                        self.paths.insert(pid, (name.clone(), path.clone(), package.clone()));
+                        (path, package)
                     }
                 };
-                list.push(ProcInfo { pid, name, path: cached });
+                list.push(ProcInfo { pid, name, path, package });
             }
             ok = unsafe { Process32NextW(snap, &mut entry) } != 0;
         }
@@ -75,16 +77,21 @@ impl ProcessSource for Win32Processes {
     }
 }
 
-fn query_path(pid: u32) -> Option<String> {
+/// A process's exe path and, for Store / Xbox apps, its package family name. One least-privilege handle for both.
+fn query_process(pid: u32) -> (Option<String>, Option<String>) {
     let h: HANDLE = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
     if h.is_null() {
-        return None;
+        return (None, None);
     }
     let mut buf = [0u16; 1024];
     let mut size = buf.len() as u32;
-    let ok = unsafe { QueryFullProcessImageNameW(h, 0, buf.as_mut_ptr(), &mut size) } != 0;
+    let path = (unsafe { QueryFullProcessImageNameW(h, 0, buf.as_mut_ptr(), &mut size) } != 0).then(|| String::from_utf16_lossy(&buf[..size as usize]));
+    // Ordinary desktop programs have no package: the call fails with APPMODEL_ERROR_NO_PACKAGE.
+    let mut family = [0u16; 256];
+    let mut len = family.len() as u32;
+    let package = (unsafe { GetPackageFamilyName(h, &mut len, family.as_mut_ptr()) } == 0).then(|| from_wide(&family)).filter(|p| !p.is_empty());
     unsafe { CloseHandle(h) };
-    ok.then(|| String::from_utf16_lossy(&buf[..size as usize]))
+    (path, package)
 }
 
 /// The foreground window's process, and whether it's fullscreen the way games are (exclusive fullscreen or

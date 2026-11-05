@@ -256,7 +256,12 @@ impl Rig {
 
     fn proc(&self, pid: u32, path: String) {
         let name = path.rsplit('\\').next().unwrap().to_string();
-        self.procs.0.lock().unwrap().push(ProcInfo { pid, name, path: Some(path) });
+        self.procs.0.lock().unwrap().push(ProcInfo { pid, name, path: Some(path), package: None });
+    }
+
+    fn packaged(&self, pid: u32, path: &str, package: &str) {
+        let name = path.rsplit('\\').next().unwrap().to_string();
+        self.procs.0.lock().unwrap().push(ProcInfo { pid, name, path: Some(path.into()), package: Some(package.into()) });
     }
 
     /// Titles Shelf asked about ("Looks like you're playing X").
@@ -306,6 +311,33 @@ fn tracks_a_store_game_by_its_folder_without_knowing_the_exe() {
     let s = r.t.sessions.sessions(None, None, 10).unwrap();
     assert_eq!(s.len(), 1);
     assert!((110..=125).contains(&s[0].seconds()));
+}
+
+#[test]
+fn xbox_games_are_tracked_by_their_package_wherever_they_run() {
+    // An Xbox game lives in C:\XboxGames, but Windows runs it from WindowsApps; and Minecraft Java runs as javaw.exe.
+    let r = Rig::new();
+    let roblox_dir = r.t.tree.dir("XboxGames/Roblox");
+    let mut roblox = InstallRecord::new(SourceKind::Xbox, "Roblox", &roblox_dir);
+    roblox.source_key = Some("ROBLOXCorporation.RobloxGDK_55nm5eh3cm0pr".into());
+    roblox.confidence = 100;
+    let mc_dir = r.t.tree.dir("XboxGames/Minecraft Launcher");
+    let mut mc = InstallRecord::new(SourceKind::Xbox, "Minecraft", &mc_dir);
+    mc.source_key = Some("Microsoft.4297127D64EC6_8wekyb3d8bbwe".into());
+    mc.confidence = 100;
+    r.t.library.sync(&LibrarySnapshot { games: matcher::merge(vec![roblox, mc]), ..Default::default() }, T0).unwrap();
+
+    r.w.start(None, false).unwrap();
+    r.packaged(60, r"C:\Program Files\WindowsApps\ROBLOXCorporation.RobloxGDK_2.745.1137.0_x64__55nm5eh3cm0pr\RobloxPlayerBeta.exe", "ROBLOXCorporation.RobloxGDK_55nm5eh3cm0pr");
+    r.packaged(61, r"C:\Users\you\AppData\Local\Packages\Microsoft.4297127D64EC6_8wekyb3d8bbwe\LocalCache\Local\runtime\bin\javaw.exe", "Microsoft.4297127D64EC6_8wekyb3d8bbwe");
+    // Some other Store app running at the same time isn't a game.
+    r.packaged(62, r"C:\Program Files\WindowsApps\5319275A.WhatsAppDesktop_2.2640.100.0_x64__cv1g1gvanyjgm\WhatsApp.Root.exe", "5319275A.WhatsAppDesktop_cv1g1gvanyjgm");
+    r.run(2 * MIN);
+    r.w.stop();
+
+    let mut log = r.session_log();
+    log.sort();
+    assert_eq!(log, ["Started Minecraft", "Started Roblox", "Stopped Minecraft", "Stopped Roblox"]);
 }
 
 #[test]
